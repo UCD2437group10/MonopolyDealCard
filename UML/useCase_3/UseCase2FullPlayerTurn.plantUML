@@ -1,0 +1,53 @@
+@startuml
+
+' Turn initiation flow
+GE -> UI: Push [Current Player Turn Start] notification
+UI --> P: Display turn start screen, prompt for action
+P -> UI: Confirm to start turn
+UI -> GE: Trigger turn initialization
+
+' Turn initialization: Draw cards + reset state
+GE -> CM: Execute turn start draw (Default 2 cards)
+CM -> PM: Add drawn cards to player's hand
+GE -> PM: Reset player turn state (Remaining actions = 3)
+PM --> GE: Return updated player state
+GE -> UM: Trigger UI refresh
+UM --> UI: Update player hand, action count, turn info
+UI --> P: Display turn action interface
+
+' Loop for in-turn actions (matches course loop standard)
+loop Remaining actions > 0 AND Player has not ended turn
+    P -> UI: Select in-turn action
+    UI -> GE: Submit player action command
+
+    ' Branch: Player chooses to play card OR end turn
+    alt Player selects [Play Card] action
+        ' Reuse Play Card use case (matches UML reuse standard)
+        ref over P,UI,GE,GRV,CM,PM,UM : Play Card Use Case
+    else Player selects [End Turn]
+        break ' Exit loop, end turn actions
+    end
+end
+
+' End-of-turn hand validation: Max 7 cards (per game rules)
+GE -> GRV: Validate player hand count compliance (≤7 cards)
+GRV --> GE: Return validation result
+alt Hand count > 7, must discard
+    UI --> P: Prompt [Must discard to ≤7 cards]
+    ' Loop discard until compliant
+    loop Player hand count > 7
+        P -> UI: Select card to discard
+        UI -> GE: Submit discard request
+        GE -> CM: Execute discard processing
+        CM -> PM: Remove card from hand, add to discard pile
+        GE -> UM: Refresh hand display
+    end
+end
+
+' Turn wrap-up
+GE -> GE: Mark current player turn ended
+GE -> GE: Switch to next player
+GE -> UM: Trigger global UI update
+UM --> UI: Display turn end screen, switch to next player
+UI --> P: Prompt [Turn ended]
+@enduml
