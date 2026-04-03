@@ -1,2 +1,6 @@
 # MonopolyDealCard
-this is our group work!
+
+## main introduction
+monopoly deal cards game
+
+
