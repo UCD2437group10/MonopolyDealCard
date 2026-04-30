@@ -1,0 +1,146 @@
+@startuml
+hide empty members
+skinparam packageStyle rectangle
+
+package "server.net" {
+  interface ServerConnectionHub {
+    +bind(port: int)
+    +sendToPlayer(playerId: String, msg: BaseMessage)
+    +broadcast(msg: BaseMessage)
+  }
+
+  interface ServerMessageRouter {
+    +onMessage(msg: BaseMessage)
+  }
+
+  interface ServerMessageCodec {
+    +toJson(msg: BaseMessage): String
+    +fromJson(json: String): BaseMessage
+  }
+
+  class WebSocketServerHub
+  class DefaultServerMessageRouter
+}
+
+package "server.engine" {
+  interface GameSessionService {
+    +joinGame(playerId: String, nickname: String)
+    +leaveGame(playerId: String)
+    +startGame(playerId: String)
+    +reconnect(playerId: String, sessionToken: String)
+  }
+
+  interface TurnEngine {
+    +initGame()
+    +handleAction(playerId: String, action: ActionPayload)
+    +endTurn(playerId: String)
+    +onTimeout()
+  }
+
+  interface StateService {
+    +buildViewFor(playerId: String): GameStateView
+    +broadcastState()
+    +nextStateVersion(): int
+  }
+
+  interface VictoryService {
+    +checkVictory(playerId: String): boolean
+    +checkDraw(): boolean
+  }
+
+  class SingleRoomGameSessionService
+  class DefaultTurnEngine
+  class DefaultStateService
+  class DefaultVictoryService
+
+  class SingleRoomContext {
+    +ROOM_ID: String = "ROOM-1"
+    +hostPlayerId: String
+    +players: Map<String, PlayerRuntime>
+    +engineState: EngineState
+  }
+
+  class PlayerRuntime
+  class EngineState
+}
+
+package "server.cards" {
+  interface CardRuleService {
+    +validateAction(playerId: String, action: ActionPayload): ValidationResult
+    +resolveAction(playerId: String, action: ActionPayload): ResolveResult
+  }
+
+  interface ActionCardResolver {
+    +supports(cardName: String): boolean
+    +resolve(playerId: String, action: ActionPayload): ResolveResult
+  }
+
+  interface ResolverRegistry {
+    +getResolver(cardName: String): ActionCardResolver
+  }
+
+  class ValidationResult {
+    +ok: boolean
+    +errorCode: String
+    +errorMessage: String
+  }
+
+  class ResolveResult {
+    +success: boolean
+    +message: String
+    +needPrompt: boolean
+    +promptPayload: Object
+  }
+
+  class SlyDealResolver
+  class DealBreakerResolver
+  class HouseResolver
+  class HotelResolver
+  class DoubleTheRentResolver
+  class DebtCollectorResolver
+  class ItsMyBirthdayResolver
+  class ForcedDealResolver
+  class JustSayNoResolver
+  class PassGoResolver
+}
+
+WebSocketServerHub ..|> ServerConnectionHub
+DefaultServerMessageRouter ..|> ServerMessageRouter
+
+SingleRoomGameSessionService ..|> GameSessionService
+DefaultTurnEngine ..|> TurnEngine
+DefaultStateService ..|> StateService
+DefaultVictoryService ..|> VictoryService
+
+SlyDealResolver ..|> ActionCardResolver
+DealBreakerResolver ..|> ActionCardResolver
+HouseResolver ..|> ActionCardResolver
+HotelResolver ..|> ActionCardResolver
+DoubleTheRentResolver ..|> ActionCardResolver
+DebtCollectorResolver ..|> ActionCardResolver
+ItsMyBirthdayResolver ..|> ActionCardResolver
+ForcedDealResolver ..|> ActionCardResolver
+JustSayNoResolver ..|> ActionCardResolver
+PassGoResolver ..|> ActionCardResolver
+
+SingleRoomGameSessionService --> SingleRoomContext
+DefaultTurnEngine --> SingleRoomContext
+DefaultStateService --> SingleRoomContext
+DefaultTurnEngine --> CardRuleService
+DefaultTurnEngine --> VictoryService
+DefaultStateService --> ServerConnectionHub
+DefaultServerMessageRouter --> GameSessionService
+DefaultServerMessageRouter --> TurnEngine
+DefaultServerMessageRouter --> ServerConnectionHub
+
+CardRuleService --> ResolverRegistry
+CardRuleService ..> ValidationResult
+CardRuleService ..> ResolveResult
+ResolverRegistry --> ActionCardResolver
+
+ServerConnectionHub ..> BaseMessage
+ServerMessageRouter ..> BaseMessage
+TurnEngine ..> ActionPayload
+StateService ..> GameStateView
+
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+hide footbox
+autonumber
+
+title Reconnect and State Recovery Sequence
+
+actor Player as P
+
+box "Frontend" #DDEEFF
+participant "ClientConnection" as CC
+participant "ClientActionService" as CAS
+participant "ClientStateStore" as Store
+participant "MainBoardView" as UIA
+end box
+
+box "Backend" #FFE9D6
+participant "ServerMessageRouter" as Router
+participant "GameSessionService" as Session
+participant "StateService" as State
+participant "ServerConnectionHub" as Hub
+end box
+
+P -> CAS : reconnect(sessionToken)
+CAS -> CC : send(RECONNECT)
+CC -> Router : BaseMessage(RECONNECT)
+Router -> Session : reconnect(playerId, sessionToken)
+Session -> State : buildViewFor(playerId)
+State --> Session : GameStateView(snapshot)
+Session -> Hub : sendToPlayer(playerId, STATE_EVENT(fullState))
+Hub -> CC : STATE_EVENT(fullState)
+CC -> CAS : onStateEvent(fullState)
+CAS -> Store : applyState(fullState)
+CAS -> UIA : render(fullState)
+UIA -> UIA : restore timer/action context
+
+@enduml

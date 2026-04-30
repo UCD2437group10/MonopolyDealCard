@@ -1,0 +1,97 @@
+@startuml
+hide empty members
+skinparam packageStyle rectangle
+
+package "common.model" {
+  enum CardType {
+    PROPERTY
+    MONEY
+    ACTION
+  }
+
+  enum PhaseType {
+    ACTIVE_TURN
+    RESPONSE_WINDOW
+    PAY_DEBT
+    GAME_OVER
+  }
+
+  enum ActionType {
+    PLAY_CARD
+    USE_ACTION
+    SELECT_TARGET
+    CONFIRM_STEP
+    CANCEL_STEP
+    SWITCH_PROPERTY_COLOR
+    END_TURN
+    DECLARE_VICTORY
+  }
+
+  class Card {
+    +cardId: String
+    +name: String
+    +cardType: CardType
+    +faceValue: int
+    +colors: List<String>
+  }
+
+  class PlayerPublicView {
+    +playerId: String
+    +nickname: String
+    +online: boolean
+    +handCount: int
+    +bankValue: int
+    +propertySummary: Map<String, Integer>
+  }
+
+  class PlayerPrivateView {
+    +hand: List<Card>
+    +bank: List<Card>
+    +propertySets: Map<String, List<Card>>
+  }
+
+  class GameStateView {
+    +roomId: String
+    +gameId: String
+    +stateVersion: int
+    +turnId: int
+    +currentPlayerId: String
+    +phase: PhaseType
+    +deadlineMs: long
+    +drawPileCount: int
+    +discardPileCount: int
+    +playersPublic: List<PlayerPublicView>
+    +selfPrivate: PlayerPrivateView
+  }
+
+  class BaseMessage {
+    +protocolVersion: String
+    +msgType: String
+    +roomId: String
+    +gameId: String
+    +playerId: String
+    +sessionToken: String
+    +actionId: Integer
+    +turnId: Integer
+    +timestamp: Long
+    +payload: Object
+  }
+
+  class ActionPayload {
+    +actionType: ActionType
+    +sourceCardId: String
+    +targets: List<String>
+    +selectedCardIds: List<String>
+    +options: Map<String, Object>
+  }
+}
+
+Card --> CardType
+ActionPayload --> ActionType
+GameStateView --> PhaseType
+PlayerPrivateView "1" o-- "*" Card
+PlayerPublicView "*" <-- GameStateView
+PlayerPrivateView <-- GameStateView
+BaseMessage --> ActionPayload : payload (ACTION_REQUEST)
+
+@enduml

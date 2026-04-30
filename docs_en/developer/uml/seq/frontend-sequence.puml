@@ -1,0 +1,42 @@
+@startuml
+hide footbox
+autonumber
+
+title Frontend Internal Sequence (uiB/core/net/uiA)
+
+actor Player as P
+participant "uiB\nInteractionController" as IC
+participant "uiB\nDialogService" as DS
+participant "core\nClientActionService" as CAS
+participant "core\nClientStateStore" as Store
+participant "net\nClientConnection" as Conn
+participant "uiA\nMainBoardView" as Board
+participant "uiA\nAnimationService" as Anim
+participant "uiA\nAudioService" as Audio
+
+P -> IC : click card
+IC -> CAS : sendAction(ActionPayload)
+CAS -> Conn : send(ACTION_REQUEST)
+
+Conn --> CAS : onActionResult(success)
+CAS -> Audio : play("play")
+
+Conn --> CAS : onStateEvent(GameStateView)
+CAS -> Store : applyState(state)
+CAS -> Board : render(state)
+Board -> Anim : playCardMove(...)
+
+alt receive ERROR_EVENT
+  Conn --> CAS : onError(code, message)
+  CAS -> DS : showError(code, message)
+  DS --> P : error window
+else receive PROMPT_EVENT(PAY_DEBT)
+  Conn --> CAS : onPromptEvent(payload)
+  CAS -> DS : showDebtPaymentDialog(payload)
+  P -> DS : choose card to pay
+  DS -> IC : onConfirm(payCards)
+  IC -> CAS : sendAction(CONFIRM_STEP)
+  CAS -> Conn : send(ACTION_REQUEST)
+end
+
+@enduml

@@ -1,0 +1,77 @@
+@startuml
+hide footbox
+autonumber
+skinparam responseMessageBelowArrow true
+
+title Monopoly Deal (Single Room) - End-to-End Main Sequence
+
+actor Player as P
+
+box "Frontend (JavaFX Client)" #DDEEFF
+participant "UI B\nInteractionController" as UIB
+participant "ClientActionService" as CAS
+participant "ClientConnection" as CC
+participant "UI A\nMainBoardView" as UIA
+end box
+
+box "Backend (Authoritative Server)" #FFE9D6
+participant "ServerMessageRouter" as Router
+participant "GameSessionService" as Session
+participant "TurnEngine" as Engine
+participant "CardRuleService" as Rules
+participant "StateService" as State
+participant "ServerConnectionHub" as Hub
+end box
+
+P -> UIB : click to join game
+UIB -> CAS : joinGame(nickname)
+CAS -> CC : send(JOIN_GAME)
+CC -> Router : BaseMessage(JOIN_GAME)
+Router -> Session : joinGame(playerId, nickname)
+Session -> State : broadcastState()
+State -> Hub : broadcast(ROOM_EVENT/STATE_EVENT)
+Hub -> CC : ROOM_EVENT
+CC -> CAS : onRoomEvent(...)
+CAS -> UIA : onRoomEvent(...)
+UIA -> UIA : render room players
+
+P -> UIB : click to start game
+UIB -> CAS : startGame()
+CAS -> CC : send(START_GAME)
+CC -> Router : BaseMessage(START_GAME)
+Router -> Session : startGame(playerId)
+Session -> Engine : initGame()
+Engine -> State : broadcastState()
+State -> Hub : broadcast(STATE_EVENT)
+Hub -> CC : STATE_EVENT
+CC -> CAS : onStateEvent(...)
+CAS -> UIA : onStateEvent(...)
+UIA -> UIA : render(game state)
+
+P -> UIB : use card
+UIB -> CAS : sendAction(PLAY_CARD)
+CAS -> CC : send(ACTION_REQUEST)
+CC -> Router : BaseMessage(ACTION_REQUEST)
+Router -> Engine : handleAction(playerId, action)
+Engine -> Rules : validateAction(...)
+Rules --> Engine : ValidationResult(ok)
+Engine -> Rules : resolveAction(...)
+Rules --> Engine : ResolveResult
+Engine -> State : broadcastState()
+State -> Hub : broadcast(STATE_EVENT)
+Hub -> CC : ACTION_RESULT + STATE_EVENT
+CC -> CAS : onActionResult / onStateEvent
+CAS -> UIA : onActionResult / onStateEvent
+UIA -> UIA : play animation + rerender
+
+alt reach 3 complete sets
+  Engine -> Hub : broadcast(GAME_OVER)
+  Hub -> CC : GAME_OVER
+  CC -> CAS : onGameOver(...)
+  CAS -> UIA : onGameOver(...)
+  UIA -> UIA : show winner dialog
+else next turn
+  Engine -> Engine : next turn
+end
+
+@enduml
