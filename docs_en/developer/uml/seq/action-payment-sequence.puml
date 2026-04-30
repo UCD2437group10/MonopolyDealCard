@@ -1,0 +1,42 @@
+@startuml
+hide footbox
+autonumber
+
+title Action Card with Payment Prompt (Debt Collector Example)
+
+actor "Active Player P1" as P1
+actor "Target Player P2" as P2
+
+box "Frontend" #DDEEFF
+participant "P1 Client" as C1
+participant "P2 Client" as C2
+end box
+
+box "Backend" #FFE9D6
+participant "ServerRouter" as R
+participant "TurnEngine" as E
+participant "CardRuleService" as CR
+participant "StateService" as S
+participant "Hub" as H
+end box
+
+P1 -> C1 : use Debt Collector
+C1 -> R : ACTION_REQUEST(USE_ACTION, target=P2)
+R -> E : handleAction(P1, USE_ACTION)
+E -> CR : resolveAction(...)
+CR --> E : ResolveResult(needPrompt=true, amount=5)
+E -> H : sendToPlayer(P2, PROMPT_EVENT PAY_DEBT)
+H -> C2 : PROMPT_EVENT(amount=5)
+
+P2 -> C2 : choose way to pay money
+C2 -> R : ACTION_REQUEST(CONFIRM_STEP, payCards)
+R -> E : handleAction(P2, CONFIRM_STEP)
+E -> CR : validateAction(payment)
+CR --> E : ok
+E -> E : transfer assets P2 -> P1
+E -> S : broadcastState()
+S -> H : broadcast(STATE_EVENT)
+H -> C1 : ACTION_RESULT + STATE_EVENT
+H -> C2 : ACTION_RESULT + STATE_EVENT
+
+@enduml

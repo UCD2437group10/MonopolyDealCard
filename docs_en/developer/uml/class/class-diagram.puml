@@ -1,0 +1,82 @@
+@startuml
+skinparam packageStyle rectangle
+left to right direction
+
+package "Frontend (JavaFX)" {
+  package "client.uiA" {
+    interface MainBoardView
+    interface AnimationService
+    interface AudioService
+  }
+
+  package "client.uiB" {
+    interface InteractionController
+    interface DialogService
+  }
+
+  package "client.core" {
+    interface ClientStateStore
+    interface ClientActionService
+  }
+
+  package "client.net" {
+    interface ClientConnection
+    interface ClientMessageCodec
+    interface ClientMessageListener
+  }
+}
+
+package "Shared Contract" {
+  class BaseMessage
+  class ActionPayload
+  class GameStateView
+  class Card
+}
+
+package "Backend (Authoritative Server)" {
+  package "server.net" {
+    interface ServerConnectionHub
+    interface ServerMessageRouter
+    interface ServerMessageCodec
+  }
+
+  package "server.engine" {
+    interface GameSessionService
+    interface TurnEngine
+    interface StateService
+    interface VictoryService
+    class SingleRoomContext
+  }
+
+  package "server.cards" {
+    interface CardRuleService
+    interface ResolverRegistry
+    interface ActionCardResolver
+  }
+}
+
+ClientActionService --> ClientConnection
+ClientConnection --> ClientMessageListener
+ClientMessageCodec ..> BaseMessage
+ClientConnection ..> BaseMessage
+ClientActionService ..> ActionPayload
+ClientStateStore ..> GameStateView
+MainBoardView ..> GameStateView
+
+ServerMessageRouter ..> BaseMessage
+ServerConnectionHub ..> BaseMessage
+TurnEngine ..> ActionPayload
+StateService ..> GameStateView
+GameSessionService --> SingleRoomContext
+TurnEngine --> SingleRoomContext
+TurnEngine --> CardRuleService
+StateService --> ServerConnectionHub
+CardRuleService --> ResolverRegistry
+ResolverRegistry --> ActionCardResolver
+
+note top of "Backend (Authoritative Server)"
+Only backend modifies core game state.
+Frontend sends commands and renders server events.
+end note
+
+@enduml

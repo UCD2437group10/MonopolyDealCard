@@ -1,0 +1,112 @@
+@startuml
+hide empty members
+skinparam packageStyle rectangle
+
+package "client.net" {
+  interface ClientConnection {
+    +connect(serverUrl: String)
+    +disconnect()
+    +send(msg: BaseMessage)
+    +setListener(listener: ClientMessageListener)
+  }
+
+  interface ClientMessageListener {
+    +onRoomEvent(msg: BaseMessage)
+    +onStateEvent(msg: BaseMessage)
+    +onPromptEvent(msg: BaseMessage)
+    +onActionResult(msg: BaseMessage)
+    +onGameOver(msg: BaseMessage)
+    +onError(msg: BaseMessage)
+  }
+
+  interface ClientMessageCodec {
+    +toJson(msg: BaseMessage): String
+    +fromJson(json: String): BaseMessage
+  }
+}
+
+package "client.core" {
+  interface ClientStateStore {
+    +applyState(state: GameStateView)
+    +getCurrentState(): GameStateView
+  }
+
+  interface ClientActionService {
+    +joinGame(nickname: String)
+    +leaveGame()
+    +startGame()
+    +reconnect(sessionToken: String)
+    +sendAction(payload: ActionPayload)
+    +declareVictory()
+  }
+
+  class DefaultClientStateStore
+  class DefaultClientActionService
+}
+
+package "client.uiA" {
+  interface MainBoardView {
+    +render(state: GameStateView)
+    +showCurrentPlayer(playerId: String)
+    +showCountdown(deadlineMs: long)
+  }
+
+  interface AnimationService {
+    +playCardMove(cardId: String, fromZone: String, toZone: String)
+    +playCardFlip(cardId: String)
+  }
+
+  interface AudioService {
+    +play(sfxId: String)
+  }
+
+  class JavaFxMainBoardView
+  class JavaFxAnimationService
+  class JavaFxAudioService
+}
+
+package "client.uiB" {
+  interface InteractionController {
+    +onCardClick(cardId: String)
+    +onTargetClick(playerId: String)
+    +onConfirm()
+    +onCancel()
+    +onEndTurn()
+  }
+
+  interface DialogService {
+    +showError(code: String, message: String)
+    +showDebtPaymentDialog(promptPayload: Object)
+    +showTargetSelectDialog(promptPayload: Object)
+  }
+
+  class DefaultInteractionController
+  class JavaFxDialogService
+}
+
+DefaultClientStateStore ..|> ClientStateStore
+DefaultClientActionService ..|> ClientActionService
+JavaFxMainBoardView ..|> MainBoardView
+JavaFxAnimationService ..|> AnimationService
+JavaFxAudioService ..|> AudioService
+DefaultInteractionController ..|> InteractionController
+JavaFxDialogService ..|> DialogService
+
+DefaultClientActionService --> ClientConnection
+DefaultClientActionService --> ClientStateStore
+DefaultClientActionService --> ClientMessageCodec
+ClientConnection --> ClientMessageListener
+
+DefaultInteractionController --> ClientActionService
+DefaultInteractionController --> DialogService
+JavaFxMainBoardView --> ClientStateStore
+JavaFxMainBoardView --> AnimationService
+JavaFxMainBoardView --> AudioService
+
+ClientConnection ..> BaseMessage
+ClientMessageCodec ..> BaseMessage
+ClientActionService ..> ActionPayload
+ClientStateStore ..> GameStateView
+MainBoardView ..> GameStateView
+
+@enduml

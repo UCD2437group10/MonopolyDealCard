@@ -1,0 +1,52 @@
+@startuml
+hide footbox
+autonumber
+
+title Backend Internal Sequence (net/engine/cards)
+
+participant "net\nServerMessageRouter" as Router
+participant "engine\nGameSessionService" as Session
+participant "engine\nTurnEngine" as Engine
+participant "cards\nCardRuleService" as CardRules
+participant "cards\nResolverRegistry" as Registry
+participant "cards\nActionCardResolver" as Resolver
+participant "engine\nVictoryService" as Victory
+participant "engine\nStateService" as State
+participant "net\nServerConnectionHub" as Hub
+
+Router -> Session : joinGame(playerId, nickname)
+Session -> State : broadcastState()
+State -> Hub : broadcast(ROOM_EVENT/STATE_EVENT)
+
+Router -> Session : startGame(hostPlayerId)
+Session -> Engine : initGame()
+Engine -> State : nextStateVersion()
+Engine -> State : broadcastState()
+State -> Hub : broadcast(STATE_EVENT)
+
+Router -> Engine : handleAction(playerId, action)
+Engine -> CardRules : validateAction(playerId, action)
+CardRules --> Engine : ValidationResult(ok)
+
+Engine -> CardRules : resolveAction(playerId, action)
+CardRules -> Registry : getResolver(cardName)
+Registry --> CardRules : resolver
+CardRules -> Resolver : resolve(playerId, action)
+Resolver --> CardRules : ResolveResult
+CardRules --> Engine : ResolveResult
+
+alt needPrompt = true
+  Engine -> Hub : sendToPlayer(..., PROMPT_EVENT)
+else needPrompt = false
+  Engine -> Engine : apply state mutation
+end
+
+Engine -> Victory : checkVictory(playerId)
+alt victory=true
+  Engine -> Hub : broadcast(GAME_OVER)
+else victory=false
+  Engine -> State : broadcastState()
+  State -> Hub : broadcast(STATE_EVENT)
+end
+
+@enduml
