@@ -1,4 +1,7 @@
-package edu.group10.common;
+package edu.group10.common.enums;
 
-public class CardType {
+public enum CardType {
+    ACTION,
+    MONEY,
+    PROPERTY
 }
