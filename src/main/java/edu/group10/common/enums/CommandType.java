@@ -8,5 +8,8 @@ public enum CommandType {
     REMOVE_PROPERTY,
     TRANSFER_MONEY,
     TRANSFER_PROPERTY,
-    SWAP_PROPERTY
+    SWAP_PROPERTY,
+    DRAW_CARD,
+    CHANGE_OWN,
+    STOP_CARD
 }
