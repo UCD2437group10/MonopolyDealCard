@@ -11,6 +11,13 @@ public class Suit {
     private PropertyColor colour;
     private int extraValue = 0;
 
+    public Suit() {}
+
+    public Suit(PropertyColor colour, int rent) {
+        this.colour = colour;
+        this.extraValue = rent;
+    }
+
     public boolean addCard(PropertyCard card, int chooseColour) {
         try {
             if (suit.isEmpty()) {
@@ -33,6 +40,10 @@ public class Suit {
     }
 
     public int returnMoney() {
+        if (suit.isEmpty() && extraValue > 0) {
+            return extraValue;
+        }
+
         if (suit.isEmpty()) return 0;
         if (suit.get(0).getColours().length != 1) {
             return suit.get(0).getSetProgressValue(colour, suit.size()) + extraValue;
@@ -43,7 +54,6 @@ public class Suit {
     }
 
     /**
-     *
      * @return the card in the suit can remove
      */
     public Collection<PropertyCard> returnCards() {

@@ -4,6 +4,8 @@ import edu.group10.common.model.GameActionResult;
 import edu.group10.common.model.GameEvent;
 import edu.group10.common.model.GameState;
 import edu.group10.common.model.PlayerAction;
+import edu.group10.common.skill.LogicSkillResolver;
+import edu.group10.common.skill.SkillResolver;
 import edu.group10.core.engine.*;
 import edu.group10.core.manager.CardManager;
 import edu.group10.core.manager.GameStateManager;
@@ -30,9 +32,7 @@ public class GameEngineImpl implements GameEngine{
     private final ActionExecutor actionExecutor;
     private final TurnManager turnManager;
     private static final Logger logger = Logger.getLogger(GameEngineImpl.class.getName());
-
-    // TODO: 等 Logic 模块完成后，添加这个字段
-    // private SkillResolver skillResolver;
+    private SkillResolver skillResolver;
 
     public GameEngineImpl() {
         this.cardManager = new CardManager();
@@ -43,19 +43,9 @@ public class GameEngineImpl implements GameEngine{
         this.actionExecutor = new ActionExecutor(cardManager, ruleValidator,
                 commandExecutor, victoryChecker);
         this.turnManager = new TurnManager();
+        this.skillResolver = new LogicSkillResolver();
+        this.actionExecutor.setSkillResolver(skillResolver);
     }
-
-    // TODO: 等 Logic 模块完成后，取消注释这个方法
-    /**
-     * 设置技能解析器（由 Logic 模块调用）
-     *
-     *  @param
-     */
-    // public void setSkillResolver(SkillResolver resolver) {
-    //     this.skillResolver = resolver;
-    //     this.actionExecutor.setSkillResolver(resolver);
-    //     logger.info("SkillResolver has been set to ActionExecutor");
-    // }
 
     @Override
     public GameActionResult executeAction(String gameId, PlayerAction action) {

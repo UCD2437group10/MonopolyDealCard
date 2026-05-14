@@ -1,8 +1,11 @@
 package edu.group10.common.model;
 
 import edu.group10.common.enums.GamePhase;
+import edu.group10.common.enums.PropertyColor;
+
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SkillContext {
     private String gameId;
@@ -14,6 +17,8 @@ public class SkillContext {
     private int currentTurnPlayerIndex;
     private List<Property> targetPlayerProperties; //Property list of target player (advance getting)
     private int targetPlayerMoney;
+    private PropertyColor selectedColor;
+    private int baseRent;
 
     public SkillContext() {}
 
@@ -44,6 +49,12 @@ public class SkillContext {
     public int getTargetPlayerMoney() { return targetPlayerMoney; }
     public void setTargetPlayerMoney(int targetPlayerMoney) { this.targetPlayerMoney = targetPlayerMoney; }
 
+    public PropertyColor getSelectedColor() { return selectedColor; }
+    public void setSelectedColor(PropertyColor selectedColor) { this.selectedColor = selectedColor; }
+
+    public int getBaseRent() { return baseRent; }
+    public void setBaseRent(int baseRent) { this.baseRent = baseRent; }
+
     //Get PlayerState of target player
     public PlayerState getTargetPlayerState() {
         if (targetId == null || players == null) return null;
@@ -54,6 +65,44 @@ public class SkillContext {
     public PlayerState getActorPlayerState() {
         if (actorId == null || players == null) return null;
         return players.get(actorId);
+    }
+
+    //Get list of other players' ID
+    public List<String> getOtherPlayerIds() {
+        if (players == null || actorId == null) return List.of();
+        return players.keySet().stream()
+                .filter(id -> !id.equals(actorId))
+                .collect(Collectors.toList());
+    }
+
+    //Get String of other players' ID
+    public String[] getOtherPlayerIdsAsArray() {
+        List<String> others = getOtherPlayerIds();
+        return others.toArray(new String[0]);
+    }
+
+    //Get list of other players' PlayerState
+    public List<PlayerState> getOtherPlayers() {
+        if (players == null || actorId == null) return List.of();
+        return players.values().stream()
+                .filter(p -> !p.getPlayerId().equals(actorId))
+                .collect(Collectors.toList());
+    }
+
+    //Get list of all players' ID
+    public List<String> getAllPlayerIds() {
+        if (players == null) return List.of();
+        return players.keySet().stream().collect(Collectors.toList());
+    }
+
+    //Check if there is a target player
+    public boolean hasTarget() {
+        return targetId != null && !targetId.isEmpty();
+    }
+
+    //Check if the target player is the actor himself
+    public boolean isTargetSelf() {
+        return targetId != null && targetId.equals(actorId);
     }
 
     @Override

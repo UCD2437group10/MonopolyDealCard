@@ -3,7 +3,6 @@ package edu.group10.core.card.action;
 import edu.group10.common.enums.CommandType;
 import edu.group10.common.model.Command;
 import edu.group10.core.card.ActionCard;
-import edu.group10.core.card.Operation;
 
 import java.util.ArrayList;
 import java.util.Collection;

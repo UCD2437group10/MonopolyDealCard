@@ -17,6 +17,7 @@ public class PlayerAction {
     private PropertyColor selectedColor; //Selected color for dual-color and wild property cards
     private long timestamp;
     private int actionSequence; //Sequence number of action (avoid out-of-sequence)
+    private Integer rentAmount;
 
     public PlayerAction() {
         this.selectedCardIds = new ArrayList<>();
@@ -53,6 +54,9 @@ public class PlayerAction {
 
     public int getActionSequence() { return actionSequence; }
     public void setActionSequence(int actionSequence) { this.actionSequence = actionSequence; }
+
+    public Integer getRentAmount() { return rentAmount; }
+    public void setRentAmount(Integer rentAmount) { this.rentAmount = rentAmount; }
 
     @Override
     public String toString() {

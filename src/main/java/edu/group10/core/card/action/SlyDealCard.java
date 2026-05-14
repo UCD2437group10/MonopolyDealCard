@@ -2,7 +2,6 @@ package edu.group10.core.card.action;
 
 import edu.group10.common.enums.CommandType;
 import edu.group10.core.card.ActionCard;
-import edu.group10.core.card.Operation;
 
 public class SlyDealCard extends ActionCard {
     public SlyDealCard() {
