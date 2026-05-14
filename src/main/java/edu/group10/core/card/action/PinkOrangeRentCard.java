@@ -1,6 +1,7 @@
 package edu.group10.core.card.action;
 
 import edu.group10.common.enums.CommandType;
+import edu.group10.common.enums.PropertyColor;
 import edu.group10.common.model.Command;
 import edu.group10.core.card.ActionCard;
 
@@ -13,13 +14,15 @@ public class PinkOrangeRentCard extends ActionCard {
     }
 
     public Collection<Command> returnCommand(String fromPlayer, String[] toAllPlayer, Suit suit) {
-        if (suit)
-        ArrayList<Command> commands = new ArrayList<>();
-        for (String id : toAllPlayer) {
-            Command command = new Command(CommandType.REMOVE_MONEY, fromPlayer, id);
-            command.setAmount(suit.returnMoney());
-            commands.add(command);
+        if (suit.getColour().equals(PropertyColor.PINK) || suit.getColour().equals(PropertyColor.ORANGE)) {
+            ArrayList<Command> commands = new ArrayList<>();
+            for (String id : toAllPlayer) {
+                Command command = new Command(CommandType.REMOVE_MONEY, fromPlayer, id);
+                command.setAmount(suit.returnMoney());
+                commands.add(command);
+            }
+            return commands;
         }
-        return commands;
+        return null;
     }
 }
