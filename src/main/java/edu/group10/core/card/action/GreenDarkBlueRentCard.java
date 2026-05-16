@@ -14,7 +14,7 @@ public class GreenDarkBlueRentCard extends ActionCard {
     }
 
     public Collection<Command> returnCommand(String fromPlayer, String[] toAllPlayer, Suit suit) {
-        if (suit.getColour().equals(PropertyColor.GREEN) && suit.getColour().equals(PropertyColor.DARK_BLUE)) {
+        if (suit.getColour().equals(PropertyColor.GREEN) || suit.getColour().equals(PropertyColor.DARK_BLUE)) {
             ArrayList<Command> commands = new ArrayList<>();
             for (String id : toAllPlayer) {
                 Command command = new Command(CommandType.REMOVE_MONEY, fromPlayer, id);

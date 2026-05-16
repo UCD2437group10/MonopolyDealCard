@@ -10,6 +10,7 @@ import edu.group10.core.manager.CardManager;
 import edu.group10.core.model.InternalGameState;
 import edu.group10.core.model.Player;
 import edu.group10.core.model.TurnContext;
+import edu.group10.common.skill.SkillResolver;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,15 +51,12 @@ public class ActionExecutor {
         this.endTurnHandler = new EndTurnHandler();
         this.drawCardHandler = new DrawCardHandler();
         this.discardHandler = new DiscardHandler();
-
-        // TODO: 等 Logic 模块完成后，取消注释
-        // this.actionHandler = new ActionHandler(commandExecutor);
+        this.actionHandler = new ActionHandler(commandExecutor);
     }
 
-    // TODO: 等 Logic 模块完成后，取消注释
-    // public void setSkillResolver(SkillResolver skillResolver) {
-    //     actionHandler.setSkillResolver(skillResolver);
-    // }
+    public void setSkillResolver(SkillResolver skillResolver) {
+        actionHandler.setSkillResolver(skillResolver);
+    }
 
     /**
      * Execute players' action
