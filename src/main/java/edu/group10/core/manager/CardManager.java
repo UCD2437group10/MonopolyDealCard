@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public class CardManager {
-    private Map<String, Card> cardRegistry; // cardId → Card object
+    private Map<String, Card> cardRegistry; //cardId → Card object
     private List<Card> allCards; //All the card lists (used to initialize the deck)
 
     public CardManager() {
@@ -127,7 +127,7 @@ public class CardManager {
         addActionCard("just_say_no_2", "Just Say No", 4);
         addActionCard("just_say_no_3", "Just Say No", 4);
 
-        // Pass Go (10 cards)
+        //Pass Go (10 cards)
         for (int i = 1; i <= 10; i++) {
             addActionCard("pass_go_" + i, "Pass Go", 1);
         }
@@ -153,27 +153,27 @@ public class CardManager {
         addActionCard("rent_red_yellow_2", "Red/Yellow Rent", 1);
 
         //Money cards
-        // 1M (6 cards)
+        //1M (6 cards)
         for (int i = 1; i <= 6; i++) {
             addMoneyCard("money_1m_" + i, "1M", 1);
         }
-        // 2M (5 cards)
+        //2M (5 cards)
         for (int i = 1; i <= 5; i++) {
             addMoneyCard("money_2m_" + i, "2M", 2);
         }
-        // 3M (3 cards)
+        //3M (3 cards)
         for (int i = 1; i <= 3; i++) {
             addMoneyCard("money_3m_" + i, "3M", 3);
         }
-        // 4M (3 cards)
+        //4M (3 cards)
         for (int i = 1; i <= 3; i++) {
             addMoneyCard("money_4m_" + i, "4M", 4);
         }
-        // 5M (2 cards)
+        //5M (2 cards)
         for (int i = 1; i <= 2; i++) {
             addMoneyCard("money_5m_" + i, "5M", 5);
         }
-        // 10M (1 card)
+        //10M (1 card)
         addMoneyCard("money_10m_1", "10M", 10);
     }
 

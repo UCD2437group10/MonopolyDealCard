@@ -18,9 +18,6 @@ import java.util.List;
 /**
  * Action executor
  * Execute PlayerAction sent from the front end
- * TODO: 等 Logic 模块完成后，需要：
- *  * 1. 注入 ActionHandler
- *  * 2. 在 handlePlayCard() 中补充 ACTION 类型的处理
  */
 public class ActionExecutor {
     private final CardManager cardManager;
@@ -33,9 +30,7 @@ public class ActionExecutor {
     private final EndTurnHandler endTurnHandler;
     private final DrawCardHandler drawCardHandler;
     private final DiscardHandler discardHandler;
-
-    // TODO: 等 Logic 模块完成后，取消注释
-    // private final ActionHandler actionHandler;
+    private final ActionHandler actionHandler;
 
     public ActionExecutor(CardManager cardManager,
                           RuleValidator ruleValidator,
@@ -161,8 +156,6 @@ public class ActionExecutor {
 
     /**
      * Handle with playing cards
-     *
-     * TODO: 等 Logic 模块完成后，补充 ACTION 类型的处理
      */
     private List<GameEvent> handlePlayCard(InternalGameState state, PlayerAction action)
             throws GameEngineException {
@@ -196,15 +189,7 @@ public class ActionExecutor {
                 break;
 
             case ACTION:
-                // TODO: 等 Logic 模块完成后，取消注释以下代码
-                // if (actionHandler == null) {
-                //     throw new GameEngineException("ACTION_HANDLER_NOT_READY", "行动卡处理器未就绪");
-                // }
-                // events = actionHandler.handle(state, player, card, action);
-
-                // 临时：返回空事件并打印日志
-                System.out.println("[ActionExecutor] 行动卡暂未实现: " + card.getCardName());
-                events = new ArrayList<>();
+                events = actionHandler.handle(state, player, card, action);
                 break;
 
             default:

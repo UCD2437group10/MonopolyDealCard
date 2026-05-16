@@ -13,8 +13,6 @@ public class LogicSkillResolver implements SkillResolver {
     public List<Command> resolve(SkillContext context) {
         String cardName = context.getSkillCard().getCardName();
         List<Command> commands = new ArrayList<>();
-        String[] otherPlayers = context.getOtherPlayerIdsAsArray();
-        List<String> otherPlayerList = context.getOtherPlayerIds();
         String cardId = context.getSkillCard().getCardId();
 
         switch (cardName) {
@@ -27,6 +25,8 @@ public class LogicSkillResolver implements SkillResolver {
                 }
 
                 Suit brownBlueSuit = buildSuitForColor(context, brownBlueColor);
+
+                context.setLastRentSuit(brownBlueSuit);
 
                 Collection<Command> brownBlueResult = brownBlueRent.returnCommand(
                         context.getActorId(),
@@ -49,6 +49,8 @@ public class LogicSkillResolver implements SkillResolver {
 
                 Suit greenDarkBlueSuit = buildSuitForColor(context, greenDarkBlueColor);
 
+                context.setLastRentSuit(greenDarkBlueSuit);
+
                 Collection<Command> greenDarkBlueResult = greenDarkBlueRent.returnCommand(
                         context.getActorId(),
                         context.getOtherPlayerIdsAsArray(),
@@ -60,10 +62,29 @@ public class LogicSkillResolver implements SkillResolver {
                 }
                 break;
 
-                /*
             case "ACT_RENT_PINK_ORANGE":
+                PinkOrangeRentCard pinkOrangeRent = new PinkOrangeRentCard();
 
-                 */
+                PropertyColor pinkOrangeColor = context.getSelectedColor();
+                if (pinkOrangeColor == null) {
+                    pinkOrangeColor = PropertyColor.PINK;  //Default
+                }
+
+                Suit pinkOrangeSuit = buildSuitForColor(context, pinkOrangeColor);
+
+                context.setLastRentSuit(pinkOrangeSuit);
+
+                Collection<Command> pinkOrangeResult = pinkOrangeRent.returnCommand(
+                        context.getActorId(),
+                        context.getOtherPlayerIdsAsArray(),
+                        pinkOrangeSuit
+                );
+
+                if (pinkOrangeResult != null) {
+                    commands.addAll(pinkOrangeResult);
+                }
+                break;
+
             case "ACT_RENT_RED_YELLOW":
                 RedYellowRentCard redYellowRent = new RedYellowRentCard();
 
@@ -73,6 +94,8 @@ public class LogicSkillResolver implements SkillResolver {
                 }
 
                 Suit redYellowSuit = buildSuitForColor(context, redYellowColor);
+
+                context.setLastRentSuit(redYellowSuit);
 
                 Collection<Command> redYellowResult = redYellowRent.returnCommand(
                         context.getActorId(),
@@ -111,17 +134,25 @@ public class LogicSkillResolver implements SkillResolver {
 
             case "ACT_DOUBLE_THE_RENT":
                 DoubleTheRentCard doubleRent = new DoubleTheRentCard();
-                PropertyColor color = context.getSelectedColor();
-                int baseRent = context.getBaseRent();
-                Suit doubleRentSuit = new Suit(color, baseRent);  // 临时租金2M
+
+                Suit lastRentSuit = context.getLastRentSuit();
+
+                if (lastRentSuit == null) {
+                    System.out.println("[LogicSkillResolver] Double The Rent must be used with rent cards");
+                    break;
+                }
+
                 Collection<Command> doubleResult = doubleRent.returnCommand(
                         context.getActorId(),
                         context.getOtherPlayerIdsAsArray(),
-                        doubleRentSuit
+                        lastRentSuit
                 );
+
                 if (doubleResult != null) {
                     commands.addAll(doubleResult);
                 }
+
+                context.setLastRentSuit(null);
                 break;
 
             case "ACT_FORCED_DEAL":
@@ -201,12 +232,50 @@ public class LogicSkillResolver implements SkillResolver {
                     commands.addAll(result);
                 }
                 break;
+
+            case "ACT_RENT_RAILROAD_UTILITY":
+                RailroadUtilityRentCard railroadUtilityRent = new RailroadUtilityRentCard();
+
+                PropertyColor railroadUtilityColor = context.getSelectedColor();
+                if (railroadUtilityColor == null) {
+                    railroadUtilityColor = PropertyColor.RAILROAD;  //Default
+                }
+
+                Suit railroadUtilitySuit = buildSuitForColor(context, railroadUtilityColor);
+
+                Collection<Command> railroadUtilityResult = railroadUtilityRent.returnCommand(
+                        context.getActorId(),
+                        context.getOtherPlayerIdsAsArray(),
+                        railroadUtilitySuit
+                );
+
+                if (railroadUtilityResult != null) {
+                    commands.addAll(railroadUtilityResult);
+                }
+                break;
+
+            case "ACT_SLY_DEAL":
+                SlyDealCard slyDeal = new SlyDealCard();
+
+                String targetIdS = context.getTargetId();
+                if (targetIdS != null) {
+                    Collection<Command> slyDealResult = slyDeal.returnCommand(
+                            context.getActorId(),
+                            targetIdS,
+                            null
+                    );
+
+                    if (slyDealResult != null) {
+                        commands.addAll(slyDealResult);
+                    }
+                }
+                break;
         }
         return commands;
     }
 
     /**
-     * 为指定颜色构建 Suit 对象
+     * Create Suit object with a specific color
      */
     private Suit buildSuitForColor(SkillContext context, PropertyColor color) {
         Suit suit = new Suit();
@@ -217,7 +286,6 @@ public class LogicSkillResolver implements SkillResolver {
         for (String propertyId : actor.getPropertyIds()) {
             PropertyCard propertyCard = LogicCardManager.getPropertyCard(propertyId);
             if (propertyCard != null) {
-                // 检查这张物业卡是否包含该颜色
                 for (PropertyColor cardColor : propertyCard.getColours()) {
                     if (cardColor == color) {
                         suit.addCard(propertyCard, 0);

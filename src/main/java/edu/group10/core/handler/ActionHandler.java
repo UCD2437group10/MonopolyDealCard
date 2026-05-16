@@ -19,38 +19,26 @@ public class ActionHandler {
         this.commandExecutor = commandExecutor;
     }
 
-    /**
-     * 设置技能解析器（由 Logic 模块调用）
-     */
     public void setSkillResolver(SkillResolver resolver) {
         this.skillResolver = resolver;
     }
 
-    /**
-     * 处理行动卡
-     */
     public List<GameEvent> handle(InternalGameState state, Player player,
                                   Card actionCard, PlayerAction action)
             throws GameEngineException {
 
         if (skillResolver == null) {
             throw new GameEngineException("SKILL_RESOLVER_NOT_READY",
-                    "技能解析器未就绪");
+                    "The skill resolver is not ready");
         }
 
-        // 构建技能上下文
         SkillContext context = buildContext(state, player, actionCard, action);
 
-        // 调用 Logic 模块解析技能效果
         List<Command> commands = skillResolver.resolve(context);
 
-        // 执行返回的指令
         return commandExecutor.executeAll(state, commands);
     }
 
-    /**
-     * 构建技能上下文
-     */
     private SkillContext buildContext(InternalGameState state, Player player,
                                       Card actionCard, PlayerAction action) {
 
@@ -62,11 +50,10 @@ public class ActionHandler {
         context.setSkillCard(actionCard);
         context.setCurrentPhase(state.getPhase());
         context.setCurrentTurnPlayerIndex(state.getCurrentPlayerIndex());
+        context.setLastRentSuit(state.getTurnContext().getLastRentSuit());
 
-        // 转换玩家状态
         context.setPlayers(convertToPlayerStateMap(state));
 
-        // 目标玩家信息
         if (action.getTargetPlayerId() != null) {
             Player targetPlayer = state.getPlayer(action.getTargetPlayerId());
             if (targetPlayer != null) {
@@ -75,7 +62,6 @@ public class ActionHandler {
             }
         }
 
-        // 从 PlayerAction 中获取颜色和租金（如果有）
         if (action.getSelectedColor() != null) {
             context.setSelectedColor(action.getSelectedColor());
         }
@@ -87,7 +73,7 @@ public class ActionHandler {
     }
 
     /**
-     * 将内部 Player 列表转换为对外 PlayerState Map
+     * Replace inner Player list with outer PlayerState Map
      */
     private java.util.Map<String, PlayerState> convertToPlayerStateMap(InternalGameState state) {
         java.util.Map<String, PlayerState> result = new java.util.HashMap<>();

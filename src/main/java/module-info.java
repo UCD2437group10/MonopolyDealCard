@@ -1,4 +1,5 @@
 module MonopolyDealCard.main {
+    requires java.logging;
     requires javafx.controls;
     requires javafx.fxml;
 

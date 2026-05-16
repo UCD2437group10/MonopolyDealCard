@@ -2,6 +2,7 @@ package edu.group10.common.model;
 
 import edu.group10.common.enums.GamePhase;
 import edu.group10.common.enums.PropertyColor;
+import edu.group10.core.card.action.Suit;
 
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ public class SkillContext {
     private int targetPlayerMoney;
     private PropertyColor selectedColor;
     private int baseRent;
+    private Suit lastRentSuit;
 
     public SkillContext() {}
 
@@ -54,6 +56,9 @@ public class SkillContext {
 
     public int getBaseRent() { return baseRent; }
     public void setBaseRent(int baseRent) { this.baseRent = baseRent; }
+
+    public Suit getLastRentSuit() { return lastRentSuit; }
+    public void setLastRentSuit(Suit lastRentSuit) { this.lastRentSuit = lastRentSuit; }
 
     //Get PlayerState of target player
     public PlayerState getTargetPlayerState() {

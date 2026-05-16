@@ -70,7 +70,7 @@ public class LogicCardManager {
             registerProperty(new UtilityPropertyCard());
         }
 
-        // 双色物业
+        //Dual property cards
         registerProperty(new PinkOrangeDualPropertyCard());
         registerProperty(new PinkOrangeDualPropertyCard());
         registerProperty(new UtilityRailroadDualPropertyCard());
@@ -81,7 +81,7 @@ public class LogicCardManager {
         registerProperty(new RedYellowDualPropertyCard());
         registerProperty(new BrownLightBlueDualPropertyCard());
 
-        // 万能物业
+        //Wild property cards
         registerProperty(new WildPropertyCard());
         registerProperty(new WildPropertyCard());
     }
@@ -95,28 +95,28 @@ public class LogicCardManager {
     }
 
     /**
-     * 根据卡牌ID获取行动卡
+     * Get action cards based on card ID
      */
     public static ActionCard getActionCard(String cardId) {
         return actionCardRegistry.get(cardId);
     }
 
     /**
-     * 根据卡牌ID获取物业卡
+     * Get property cards based on card ID
      */
     public static PropertyCard getPropertyCard(String cardId) {
         return propertyCardRegistry.get(cardId);
     }
 
     /**
-     * 检查是否存在该行动卡
+     * Check if the action card exists
      */
     public static boolean hasActionCard(String cardId) {
         return actionCardRegistry.containsKey(cardId);
     }
 
     /**
-     * 检查是否存在该物业卡
+     * Check if the property card exists
      */
     public static boolean hasPropertyCard(String cardId) {
         return propertyCardRegistry.containsKey(cardId);

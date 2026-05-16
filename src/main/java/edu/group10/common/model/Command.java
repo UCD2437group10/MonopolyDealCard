@@ -10,6 +10,7 @@ public class Command {
     private String cardId; //Involved card
     private String propertyId; //Involved property
     private String description;
+    private String extraPropertyId; //Used for the second ID of property when exchange property
 
     public Command() {}
 
@@ -54,6 +55,9 @@ public class Command {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getExtraPropertyId() { return extraPropertyId; }
+    public void setExtraPropertyId(String extraPropertyId) { this.extraPropertyId = extraPropertyId; }
 
     @Override
     public String toString() {

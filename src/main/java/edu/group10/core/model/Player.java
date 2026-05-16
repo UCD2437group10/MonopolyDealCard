@@ -1,11 +1,14 @@
 package edu.group10.core.model;
 
 import edu.group10.common.enums.PlayerStatus;
+import edu.group10.common.enums.PropertyColor;
 import edu.group10.common.model.Card;
 import edu.group10.common.model.Property;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Player {
     private String playerId;
@@ -69,12 +72,89 @@ public class Player {
         return hand.size();
     }
 
+    /**
+     * Get all property cards that are not a whole suit
+     * Used for Sly Deal cards, and Forced Deal cards, etc
+     * @return property cards that are not a whole suit
+     */
     public List<Property> getNonCompleteSetProperties() {
-        //TODO: returns properties that is not completed (used by Forced Deal, etc.)
-        return new ArrayList<>();
+        List<Property> nonComplete = new ArrayList<>();
+
+        Map<PropertyColor, Integer> colorCount = new HashMap<>();
+        Map<PropertyColor, List<Property>> colorGroups = new HashMap<>();
+
+        for (Property property : properties) {
+            PropertyColor color = property.getCurrentColor();
+            if (color == PropertyColor.WILD) {
+                continue;
+            }
+
+            colorCount.put(color, colorCount.getOrDefault(color, 0) + 1);
+            colorGroups.computeIfAbsent(color, k -> new ArrayList<>()).add(property);
+        }
+
+        int wildCount = 0;
+        List<Property> wildProperties = new ArrayList<>();
+        for (Property property : properties) {
+            if (property.getCurrentColor() == PropertyColor.WILD) {
+                wildCount++;
+                wildProperties.add(property);
+            }
+        }
+
+        for (Map.Entry<PropertyColor, List<Property>> entry : colorGroups.entrySet()) {
+            PropertyColor color = entry.getKey();
+            List<Property> group = entry.getValue();
+            int setSize = getSetSizeForColor(color);
+            int currentCount = group.size();
+
+            int needed = setSize - currentCount;
+
+            if (needed <= 0) {
+                continue;
+            } else if (needed <= wildCount) {
+                wildCount -= needed;
+            } else {
+                nonComplete.addAll(group);
+            }
+        }
+
+        int remainingWild = wildCount;
+        for (int i = 0; i < remainingWild && i < wildProperties.size(); i++) {
+            nonComplete.add(wildProperties.get(i));
+        }
+
+        return nonComplete;
     }
 
-    // Getters and Setters
+    private int getSetSizeForColor(PropertyColor color) {
+        switch (color) {
+            case BROWN:
+                return 2;
+            case LIGHT_BLUE:
+                return 3;
+            case PINK:
+                return 3;
+            case ORANGE:
+                return 3;
+            case RED:
+                return 3;
+            case YELLOW:
+                return 3;
+            case GREEN:
+                return 3;
+            case DARK_BLUE:
+                return 2;
+            case RAILROAD:
+                return 4;
+            case UTILITY:
+                return 2;
+            default:
+                return 1;
+        }
+    }
+
+    //Getters and Setters
     public String getPlayerId() { return playerId; }
     public void setPlayerId(String playerId) { this.playerId = playerId; }
 

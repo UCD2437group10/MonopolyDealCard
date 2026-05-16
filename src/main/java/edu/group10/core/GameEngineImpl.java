@@ -15,13 +15,9 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * 游戏引擎实现
+ * Implementation of the game engine
  *
- * Core 模块的主入口，实现 GameEngine 接口
- *
- * TODO: 等 Logic 模块完成后需要：
- * 1. 注入 SkillResolver 到 ActionExecutor
- * 2. 取消注释 setSkillResolver() 相关代码
+ * The main entrance of Core module, implements GameEngine interface
  */
 public class GameEngineImpl implements GameEngine{
     private final GameStateManager stateManager;
@@ -112,7 +108,7 @@ public class GameEngineImpl implements GameEngine{
         return state.toExternalGameState();
     }
 
-    // Management of game lifecycle (will called by Infra)
+    //Management of game lifecycle (will be called by Infra)
 
     /**
      * Create a new game

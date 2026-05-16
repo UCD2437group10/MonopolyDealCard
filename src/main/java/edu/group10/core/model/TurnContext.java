@@ -1,5 +1,7 @@
 package edu.group10.core.model;
 
+import edu.group10.core.card.action.Suit;
+
 /**
  * Context of turns
  * Record the temporary state
@@ -13,10 +15,11 @@ public class TurnContext {
     private String pendingTargetPlayerId; //The target players that is temporarily saved in multiple operations
     private String pendingCardId; //The ID of cards that is temporarily saved in multiple operations
     private String pendingPropertyId; //The ID of properties that is temporarily saved in multiple operations
-    private boolean canDrawExtraCard; // Whether the player can draw extra cards (used by Pass Go)
+    private boolean canDrawExtraCard; //Whether the player can draw extra cards (used by Pass Go)
+    private Suit lastRentSuit;
 
     private static final int MAX_ACTIONS_PER_TURN = 3;
-    private static final int TURN_TIMEOUT_MS = 60000;  // 60secs
+    private static final int TURN_TIMEOUT_MS = 60000; //60 secs
 
     public TurnContext() {
         this.actionsLeftInTurn = MAX_ACTIONS_PER_TURN;
@@ -30,6 +33,7 @@ public class TurnContext {
         this.turnStartTime = System.currentTimeMillis();
         this.isWaitingForResponse = false;
         this.canDrawExtraCard = false;
+        this.lastRentSuit = null;
         clearPending();
     }
 
@@ -57,7 +61,7 @@ public class TurnContext {
         this.pendingPropertyId = null;
     }
 
-    // Getters and Setters
+    //Getters and Setters
     public int getActionsLeftInTurn() { return actionsLeftInTurn; }
     public void setActionsLeftInTurn(int actionsLeftInTurn) { this.actionsLeftInTurn = actionsLeftInTurn; }
 
@@ -81,4 +85,7 @@ public class TurnContext {
 
     public boolean isCanDrawExtraCard() { return canDrawExtraCard; }
     public void setCanDrawExtraCard(boolean canDrawExtraCard) { this.canDrawExtraCard = canDrawExtraCard; }
+
+    public Suit getLastRentSuit() { return lastRentSuit; }
+    public void setLastRentSuit(Suit lastRentSuit) { this.lastRentSuit = lastRentSuit; }
 }

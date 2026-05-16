@@ -47,6 +47,14 @@ public class Property extends Card {
     @JsonProperty
     private int setSize;
 
+    /** 是否有房子（租金 +3M） */
+    @JsonProperty
+    private boolean hasHouse;
+
+    /** 是否有旅馆（租金 +4M） */
+    @JsonProperty
+    private boolean hasHotel;
+
     // ======================== 构造器 ========================
 
     /**
@@ -54,6 +62,8 @@ public class Property extends Card {
      */
     public Property() {
         super();
+        this.hasHouse = false;
+        this.hasHotel = false;
     }
 
     /**
@@ -137,6 +147,20 @@ public class Property extends Card {
         return currentColor != null ? currentColor : primaryColor;
     }
 
+    /**
+     * 计算带房子/旅馆的租金
+     * 用于租金卡计算应收金额
+     *
+     * @return 最终租金（基础租金 + 房子加成 + 旅馆加成）
+     */
+    @JsonIgnore
+    public int getRentWithModifiers() {
+        int finalRent = rent;
+        if (hasHouse) finalRent += 3;
+        if (hasHotel) finalRent += 4;
+        return finalRent;
+    }
+
     // ======================== Getters & Setters ========================
 
     public PropertyColor getPrimaryColor() {
@@ -175,6 +199,22 @@ public class Property extends Card {
         this.setSize = setSize;
     }
 
+    public boolean isHasHouse() {
+        return hasHouse;
+    }
+
+    public void setHasHouse(boolean hasHouse) {
+        this.hasHouse = hasHouse;
+    }
+
+    public boolean isHasHotel() {
+        return hasHotel;
+    }
+
+    public void setHasHotel(boolean hasHotel) {
+        this.hasHotel = hasHotel;
+    }
+
     @Override
     public String toString() {
         return "Property{" +
@@ -185,6 +225,8 @@ public class Property extends Card {
                 ", currentColor=" + currentColor +
                 ", rent=" + rent +
                 ", setSize=" + setSize +
+                ", hasHouse=" + hasHouse +
+                ", hasHotel=" + hasHotel +
                 '}';
     }
 }

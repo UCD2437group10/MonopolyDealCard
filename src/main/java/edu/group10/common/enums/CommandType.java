@@ -3,6 +3,8 @@ package edu.group10.common.enums;
 public enum CommandType {
     ADD_MONEY,
     ADD_PROPERTY,
+    ADD_HOUSE,
+    ADD_HOTEL,
     DISCARD_CARD,
     REMOVE_MONEY,
     REMOVE_PROPERTY,
