@@ -13,6 +13,11 @@ public class PlayerState {
     private PlayerStatus status;
     private int completedSets; //Amount of completed sets
 
+    private List<String> bankCardIds=new ArrayList<>();
+
+
+    public List<String> getBankCardIds() { return bankCardIds; }
+    public void setBankCardIds(List<String> bankCardIds) { this.bankCardIds = bankCardIds; }
     public PlayerState() {
         this.propertyIds = new ArrayList<>();
         this.money = 0;

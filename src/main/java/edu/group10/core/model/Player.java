@@ -19,15 +19,35 @@ public class Player {
     private PlayerStatus status;
     private int completedSets; //Number of completed properties
 
+    private List<Card> bankCards;
+
     public Player(String playerId, String playerName) {
         this.playerId = playerId;
         this.playerName = playerName;
         this.money = 0;
         this.hand = new ArrayList<>();
         this.properties = new ArrayList<>();
+        this.bankCards = new ArrayList<>();
         this.status = PlayerStatus.ACTIVE;
         this.completedSets = 0;
     }
+    public void addCardToBank(Card card) {
+        this.bankCards.add(card);
+        this.money += card.getCardValue(); // 同步更新总资产
+    }
+
+    public void removeCardFromBank(String cardId) {
+        for (int i = 0; i < bankCards.size(); i++) {
+            if (bankCards.get(i).getCardId().equals(cardId)) {
+                this.money -= bankCards.get(i).getCardValue(); // 同步扣除总资产
+                bankCards.remove(i);
+                break;
+            }
+        }
+    }
+
+    public List<Card> getBankCards() { return bankCards; }
+    public void setBankCards(List<Card> bankCards) { this.bankCards = bankCards; }
 
     public void addCardToHand(Card card) {
         this.hand.add(card);
