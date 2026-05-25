@@ -1,0 +1,59 @@
+.root.md-dialog {
+    -fx-background-color: linear-gradient(to bottom, #17130d, #211a11);
+    -fx-border-color: #7a6320;
+    -fx-border-width: 1;
+}
+
+.md-dialog .header-panel {
+    -fx-background-color: rgba(212, 175, 55, 0.12);
+    -fx-border-color: #7a6320;
+    -fx-border-width: 0 0 1 0;
+}
+
+.md-dialog .header-panel .label {
+    -fx-text-fill: #e7cf86;
+    -fx-font-weight: bold;
+}
+
+.md-dialog .content.label {
+    -fx-text-fill: #dfc680;
+}
+
+.md-dialog .label {
+    -fx-text-fill: #dfc680;
+}
+
+.md-dialog .button-bar .button,
+.md-dialog .button {
+    -fx-background-color: #2f2414;
+    -fx-border-color: #a88933;
+    -fx-border-width: 1;
+    -fx-text-fill: #f0d57a;
+}
+
+.md-dialog .button:hover {
+    -fx-background-color: #403019;
+}
+
+.md-dialog .combo-box,
+.md-dialog .list-view,
+.md-dialog .text-area,
+.md-dialog .text-field {
+    -fx-background-color: #20170f;
+    -fx-control-inner-background: #20170f;
+    -fx-text-fill: #e7cf86;
+    -fx-highlight-fill: #6e5a1f;
+    -fx-highlight-text-fill: #f4e1a0;
+    -fx-border-color: #7a6320;
+}
+
+.md-dialog .list-cell {
+    -fx-background-color: #20170f;
+    -fx-text-fill: #e7cf86;
+}
+
+.md-dialog .list-cell:filled:selected,
+.md-dialog .list-cell:filled:hover {
+    -fx-background-color: #3b2b16;
+    -fx-text-fill: #f4e1a0;
+}

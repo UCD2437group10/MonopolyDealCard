@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="edu.group10.monopolydeal.frontend.controller.MainViewController"
+            style="-fx-background-color: linear-gradient(to bottom, #0f0f0f, #191611); -fx-text-fill: #d4af37;">
+    <center>
+        <VBox spacing="0.0" alignment="CENTER" style="-fx-background-color: transparent;">
+            <VBox fx:id="menuPane" spacing="14.0" alignment="CENTER" maxWidth="760.0">
+                <padding>
+                    <Insets top="20.0" right="20.0" bottom="20.0" left="20.0"/>
+                </padding>
+                <Label text="Monopoly Deal" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #d4af37;"/>
+                <Label text="Main Menu: choose a mode, then enter the game" style="-fx-text-fill: #d9c27f;"/>
+
+                <HBox spacing="10.0" alignment="CENTER">
+                    <Button fx:id="singleModeButton" text="Single Player" onAction="#onChooseSingle"/>
+                    <Button fx:id="multiModeButton" text="Multiplayer" onAction="#onChooseMulti"/>
+                </HBox>
+
+                <VBox fx:id="multiConfigPane" spacing="8.0" alignment="CENTER">
+                    <Label text="Multiplayer Settings" style="-fx-font-weight: bold; -fx-text-fill: #d4af37;"/>
+                    <HBox spacing="8.0" alignment="CENTER">
+                        <Label text="Server IP" style="-fx-text-fill: #cdbb86;"/>
+                        <TextField fx:id="menuHostField" prefWidth="140.0" text="127.0.0.1"/>
+                        <Label text="Port" style="-fx-text-fill: #cdbb86;"/>
+                        <TextField fx:id="menuPortField" prefWidth="90.0" text="18080"/>
+                    </HBox>
+                    <HBox spacing="8.0" alignment="CENTER">
+                        <Label text="PlayerId" style="-fx-text-fill: #cdbb86;"/>
+                        <TextField fx:id="menuPlayerIdField" prefWidth="120.0" text="p1"/>
+                        <Label text="Name" style="-fx-text-fill: #cdbb86;"/>
+                        <TextField fx:id="menuPlayerNameField" prefWidth="140.0" text="Player1"/>
+                        <CheckBox fx:id="menuBotCheckBox" text="BOT" style="-fx-text-fill: #cdbb86;"/>
+                    </HBox>
+                    <HBox spacing="8.0" alignment="CENTER">
+                        <CheckBox fx:id="menuHostServerCheckBox" text="Host server locally and join" style="-fx-text-fill: #cdbb86;"/>
+                    </HBox>
+                </VBox>
+
+                <Label fx:id="menuStatusLabel" text="Default selected: Single Player (Local)" style="-fx-text-fill: #d9c27f;"/>
+                <HBox spacing="10.0" alignment="CENTER">
+                    <Button text="Enter Game" onAction="#onEnterGame"/>
+                    <Button text="End Game" onAction="#onEndGame"/>
+                </HBox>
+            </VBox>
+
+            <VBox fx:id="gamePane" spacing="8.0" visible="false" managed="false">
+                <padding>
+                    <Insets top="10.0" right="10.0" bottom="10.0" left="10.0"/>
+                </padding>
+
+                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                    <Label text="Monopoly Deal" style="-fx-font-weight: bold; -fx-font-size: 17px; -fx-text-fill: #d4af37;"/>
+                    <Button text="Back" onAction="#onBackToMenu"/>
+                    <Button fx:id="readyButton" text="Ready" onAction="#onReadyToggle"/>
+                    <Button text="Start" onAction="#onStart"/>
+                    <Button text="Refresh" onAction="#onRefresh"/>
+                    <Label fx:id="statusLabel" text="Status: waiting for action" style="-fx-text-fill: #d9c27f;"/>
+                    <Label fx:id="reconnectLabel" text="" style="-fx-text-fill: #e39a4b;"/>
+                    <Label fx:id="turnLabel" text="Turn: unknown" style="-fx-text-fill: #f0d57a;"/>
+                </HBox>
+
+                <HBox spacing="10.0" prefHeight="560.0" VBox.vgrow="ALWAYS">
+                    <VBox spacing="8.0" prefWidth="860.0" HBox.hgrow="ALWAYS">
+                        <VBox spacing="6.0" style="-fx-background-color: rgba(212,175,55,0.08); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
+                            <Label text="Other Players (targetable)" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
+                            <FlowPane fx:id="opponentsPane" hgap="8.0" vgap="8.0" prefWrapLength="820.0"/>
+                        </VBox>
+
+                        <HBox spacing="8.0" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                            <VBox spacing="6.0" prefWidth="260.0" style="-fx-background-color: rgba(212,175,55,0.06); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
+                                <Label text="My Bank" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
+                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" prefHeight="120.0" minHeight="120.0" maxHeight="120.0"
+                                            style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="NEVER">
+                                    <content>
+                                        <FlowPane fx:id="myBankPane" hgap="8.0" vgap="8.0" prefWrapLength="220.0"/>
+                                    </content>
+                                </ScrollPane>
+                                <Label text="My Properties" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
+                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" prefHeight="150.0" minHeight="150.0" maxHeight="150.0"
+                                            style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="NEVER">
+                                    <content>
+                                        <VBox fx:id="myPropertyBox" spacing="6.0"/>
+                                    </content>
+                                </ScrollPane>
+                            </VBox>
+
+                            <StackPane fx:id="centerBoardPane" style="-fx-background-color: rgba(212,175,55,0.04); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;" HBox.hgrow="ALWAYS">
+                                <VBox spacing="8.0" alignment="CENTER">
+                                    <Label text="Pile Area" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
+                                    <HBox spacing="16.0" alignment="CENTER">
+                                        <Button fx:id="drawPileButton" text="Draw Pile\n0" onAction="#onShowDrawPile" prefWidth="140.0" prefHeight="205.0"/>
+                                        <Button fx:id="discardPileButton" text="Discard Pile\n0" onAction="#onShowDiscardPile" prefWidth="140.0" prefHeight="205.0"/>
+                                    </HBox>
+                                    <Label text="Click a pile to view details" style="-fx-text-fill: #d9c27f;"/>
+                                </VBox>
+                            </StackPane>
+                        </HBox>
+                    </VBox>
+
+                    <VBox spacing="6.0" prefWidth="240.0" style="-fx-background-color: rgba(212,175,55,0.06); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
+                        <Label text="Action Log" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
+                        <TextArea fx:id="actionLogArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS"/>
+                        <Label text="Lobby / State" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
+                        <TextArea fx:id="playersTextArea" prefRowCount="8" wrapText="true" editable="false"/>
+                    </VBox>
+                </HBox>
+
+                <VBox spacing="6.0" style="-fx-background-color: rgba(212,175,55,0.08); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
+                    <HBox spacing="10.0" alignment="CENTER_LEFT">
+                        <Label text="Hand (select a card, then play)" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
+                        <Label fx:id="selectedCardLabel" text="Selected card: none" style="-fx-text-fill: #f0d57a;"/>
+                        <HBox HBox.hgrow="ALWAYS"/>
+                        <HBox spacing="8.0" alignment="CENTER_RIGHT">
+                            <Button fx:id="playMoneyButton" text="Play as Money" onAction="#onPlayMoney"/>
+                            <Button fx:id="playPropertyButton" text="Play Property" onAction="#onPlayProperty"/>
+                            <Button fx:id="playRentButton" text="Charge Rent" onAction="#onPlayRent"/>
+                            <Button fx:id="playActionButton" text="Play Action" onAction="#onPlayAction"/>
+                            <Button fx:id="endTurnButton" text="End Turn" onAction="#onEndTurn"/>
+                        </HBox>
+                    </HBox>
+                    <ScrollPane fitToWidth="true" hbarPolicy="AS_NEEDED" vbarPolicy="NEVER" prefHeight="320.0"
+                                style="-fx-background: transparent; -fx-background-color: transparent;">
+                        <content>
+                            <FlowPane fx:id="myHandPane" hgap="12.0" vgap="12.0" prefWrapLength="9999.0" prefHeight="300.0"/>
+                        </content>
+                    </ScrollPane>
+                </VBox>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>
