@@ -7,7 +7,8 @@ import java.util.Set;
 /**
  * Game snapshot for frontend
  */
-public record GameState(
+public record GameState (
+
         boolean started,
         boolean gameOver,
         String winnerPlayerId,

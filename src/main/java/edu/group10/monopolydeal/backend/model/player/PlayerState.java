@@ -145,4 +145,5 @@ public class PlayerState {
     public int clearHotel(String color) {
         return hotelByColor.remove(color) == null ? 0 : 1;
     }
+
 }

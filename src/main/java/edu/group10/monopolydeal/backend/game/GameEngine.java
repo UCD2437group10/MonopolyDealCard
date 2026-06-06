@@ -18,7 +18,6 @@ import java.util.Set;
 /**
  * Main process of the game
  */
-
 public class GameEngine {
 
     private static final int START_HAND_COUNT = 5;
@@ -725,4 +724,5 @@ public class GameEngine {
             drawPile.push(discardPile.pop());
         }
     }
+
 }
