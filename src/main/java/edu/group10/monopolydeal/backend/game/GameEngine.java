@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * Game engine
  * Main process of the game
  */
 public class GameEngine {
@@ -724,5 +725,4 @@ public class GameEngine {
             drawPile.push(discardPile.pop());
         }
     }
-
 }
