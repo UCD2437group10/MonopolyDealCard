@@ -15,6 +15,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
+
 <BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="edu.group10.monopolydeal.frontend.controller.MainViewController"
             style="-fx-background-color: linear-gradient(to bottom, #0f0f0f, #191611); -fx-text-fill: #d4af37;">
