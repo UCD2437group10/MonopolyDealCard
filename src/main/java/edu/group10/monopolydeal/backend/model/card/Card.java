@@ -1,7 +1,7 @@
 package edu.group10.monopolydeal.backend.model.card;
 
 /**
- * 卡牌基类。
+ * Basic card class
  */
 public interface Card {
     String name();

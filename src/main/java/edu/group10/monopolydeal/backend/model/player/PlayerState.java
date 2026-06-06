@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 玩家对局状态：手牌、银行区、地产区。
+ * Player status: hand, bank, and properties
  */
 public class PlayerState {
 

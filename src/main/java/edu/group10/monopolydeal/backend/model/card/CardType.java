@@ -1,7 +1,7 @@
 package edu.group10.monopolydeal.backend.model.card;
 
 /**
- * 卡牌大类。
+ * Card types
  */
 public enum CardType {
     PROPERTY,
