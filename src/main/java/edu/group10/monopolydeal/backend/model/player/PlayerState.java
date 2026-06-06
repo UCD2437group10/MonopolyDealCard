@@ -10,6 +10,7 @@ import java.util.Map;
 /**
  * Player status: hand, bank, and properties
  */
+
 public class PlayerState {
 
     private final Player player;
