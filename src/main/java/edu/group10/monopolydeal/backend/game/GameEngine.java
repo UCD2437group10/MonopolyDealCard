@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 游戏主流程编排（作业版完整规则实现）。
+ * Main process of the game
  */
 public class GameEngine {
 
