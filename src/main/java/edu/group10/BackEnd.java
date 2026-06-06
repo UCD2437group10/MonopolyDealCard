@@ -2,20 +2,19 @@ package edu.group10;
 
 import edu.group10.transport.GameServer;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Logger;
 
 /**
  * Monopoly Deal —— 后端主入口
  *
  * 启动流程：
- * 1. 创建 GameServer（嵌入式 Jetty + WebSocket）
- * 2. GameServer 内部初始化 GameEngineImpl（游戏引擎）
- * 3. GameWebSocketEndpoint 注册到 /game 路径
- * 4. 开始监听 8080 端口，等待客户端连接
+ * 1. 创建 GameServer（TCP Socket 模式）
+ * 2. GameServer 内部初始化 GameEngine + GameCommandService
+ * 3. 开始监听指定端口，等待客户端连接
  *
- * 启动后，前端可以通过以下地址连接：
- *   WebSocket: ws://localhost:8080/game
- *   HTTP:      http://localhost:8080
+ * 启动后，客户端可以通过 TCP Socket 连接到对应端口，
+ * 发送换行分隔的 JSON 请求。
  *
  * 要停止服务器，直接 Ctrl+C 终止进程即可。
  */
@@ -24,7 +23,6 @@ public class BackEnd {
     private static final Logger logger = Logger.getLogger(BackEnd.class.getName());
 
     public static void main(String[] args) {
-        // 从命令行参数读取端口号（可选），默认 8080
         int port = 8080;
         if (args.length > 0) {
             try {
@@ -37,22 +35,19 @@ public class BackEnd {
         GameServer server = new GameServer(port);
 
         try {
-            // 启动服务器（初始化 WebSocket、游戏引擎）
             server.start();
+            logger.info("[BackEnd] ========================================");
+            logger.info("[BackEnd]  Monopoly Deal 游戏服务器已启动!");
+            logger.info("[BackEnd]  TCP 地址: localhost:" + port);
+            logger.info("[BackEnd] ========================================");
 
-            // 注册 JVM 关闭钩子 —— 当用户按 Ctrl+C 时，优雅地停止服务器
+            // 注册 JVM 关闭钩子
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                try {
-                    logger.info("[BackEnd] Shutting down...");
-                    server.stop();
-                } catch (Exception e) {
-                    logger.severe("[BackEnd] Error during shutdown: " + e.getMessage());
-                }
+                logger.info("[BackEnd] Shutting down...");
             }));
 
-            // 阻塞主线程，让服务器持续运行
-            // server.join() 不会返回，直到服务器停止
-            server.join();
+            // 保持主线程存活（accept 线程是 daemon，主线程退出则 JVM 退出）
+            new CountDownLatch(1).await();
 
         } catch (Exception e) {
             logger.severe("[BackEnd] Failed to start server: " + e.getMessage());
