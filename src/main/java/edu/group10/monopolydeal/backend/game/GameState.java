@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 对局快照，供前端展示。
+ * Game snapshot for frontend
  */
 public record GameState(
         boolean started,
