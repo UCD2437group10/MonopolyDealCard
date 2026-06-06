@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="31080835-b0eb-47c0-b420-cc47025a7e2b" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/src/main/java/edu/group10/monopolydeal/backend/game/GameEngine.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/group10/monopolydeal/backend/game/GameEngine.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <task path="$PROJECT_DIR$">
+          <activation />
+        </task>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="MonopolyDealCard" type="f1a62948:ProjectNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Enum" />
+        <option value="Exception" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GradleScriptDefinitionsStorage" workingDir="$PROJECT_DIR$" gradleHome="C:\Users\gr\.gradle\wrapper\dists\gradle-9.0.0-bin\d6wjpkvcgsg3oed0qlfss3wgl\gradle-9.0.0" javaHome="D:\java\jdk21" gradleVersion="9.0.0" />
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="3BVZEQIGtsDDwUeImbLCJBs8zUG" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/study resources/MonopolyDealCard/src/main/java/edu/group10/monopolydeal/backend/model/player",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "项目",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "vcs.Git",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\study resources\MonopolyDealCard\src\main\java\edu\group10\monopolydeal\backend\model\player" />
+      <recent name="D:\study resources\MonopolyDealCard\src\main\java\edu\group10\monopolydeal\backend\model\card" />
+      <recent name="D:\study resources\MonopolyDealCard\src\main\java\edu\group10\monopolydeal\backend\game" />
+      <recent name="D:\study resources\MonopolyDealCard\src\main\java\edu\group10\backend\model\card" />
+      <recent name="D:\study resources\MonopolyDealCard\src\main\java\edu\group10\backend\model\player" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="Tox" factoryName="Tox">
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.25557.131" />
+        <option value="bundled-js-predefined-d6986cc7102b-b598e85cdad2-JavaScript-IU-252.25557.131" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="31080835-b0eb-47c0-b420-cc47025a7e2b" name="更改" comment="" />
+      <created>1774576085804</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1774576085804</updated>
+      <workItem from="1776766140223" duration="736000" />
+      <workItem from="1777108907619" duration="22000" />
+      <workItem from="1777115933459" duration="26000" />
+      <workItem from="1777212766026" duration="996000" />
+      <workItem from="1777251436671" duration="19000" />
+      <workItem from="1777421140340" duration="143000" />
+      <workItem from="1777517725649" duration="157000" />
+      <workItem from="1777518176725" duration="2671000" />
+      <workItem from="1777524859471" duration="1791000" />
+      <workItem from="1777533663772" duration="3171000" />
+      <workItem from="1777811654800" duration="7737000" />
+      <workItem from="1777872413243" duration="6000" />
+      <workItem from="1777872480590" duration="2273000" />
+      <workItem from="1778025681607" duration="72000" />
+      <workItem from="1778073869724" duration="160000" />
+      <workItem from="1778074420964" duration="604000" />
+      <workItem from="1778115815789" duration="42000" />
+      <workItem from="1778118222639" duration="13000" />
+      <workItem from="1778157002175" duration="2744000" />
+      <workItem from="1778163510964" duration="262000" />
+      <workItem from="1778231481536" duration="113000" />
+      <workItem from="1778231627205" duration="121000" />
+      <workItem from="1778231770988" duration="745000" />
+      <workItem from="1778327451744" duration="23000" />
+      <workItem from="1778422852604" duration="13000" />
+      <workItem from="1778551869386" duration="919000" />
+      <workItem from="1778564135521" duration="1015000" />
+      <workItem from="1778591507997" duration="151000" />
+      <workItem from="1778630725138" duration="725000" />
+      <workItem from="1778736387769" duration="21000" />
+      <workItem from="1778754107149" duration="3773000" />
+      <workItem from="1778954142378" duration="669000" />
+      <workItem from="1778954841934" duration="17000" />
+      <workItem from="1779013028366" duration="615000" />
+      <workItem from="1779064634164" duration="45000" />
+      <workItem from="1779102435761" duration="777000" />
+      <workItem from="1779189404746" duration="62000" />
+      <workItem from="1779189510990" duration="8000" />
+      <workItem from="1779331577188" duration="640000" />
+      <workItem from="1779377530471" duration="689000" />
+      <workItem from="1779421611864" duration="16000" />
+      <workItem from="1779454002274" duration="2000" />
+      <workItem from="1780754307545" duration="3922000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
