@@ -1,4 +1,4 @@
-package edu.group10.transport;
+package edu.group10.network.protocol;
 
 /**
  * Serialized response wrapper used by socket transport.

@@ -1,9 +1,12 @@
-package edu.group10.transport;
+package edu.group10.network.server;
 
 import edu.group10.monopolydeal.backend.game.GameEngine;
 import edu.group10.monopolydeal.backend.service.DeckService;
 import edu.group10.monopolydeal.backend.service.GameCommandService;
 import edu.group10.monopolydeal.common.JsonCodec;
+import edu.group10.network.protocol.GameRequest;
+import edu.group10.network.protocol.GameResponse;
+import edu.group10.network.protocol.ProtocolMapper;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStreamReader;

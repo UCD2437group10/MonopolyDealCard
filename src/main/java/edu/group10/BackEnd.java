@@ -1,6 +1,6 @@
 package edu.group10;
 
-import edu.group10.transport.GameServer;
+import edu.group10.network.server.GameServer;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Logger;

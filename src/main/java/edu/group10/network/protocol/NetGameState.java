@@ -1,4 +1,4 @@
-package edu.group10.transport;
+package edu.group10.network.protocol;
 
 import edu.group10.monopolydeal.backend.model.card.SimpleCard;
 import java.util.List;
