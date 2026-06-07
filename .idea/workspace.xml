@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="31080835-b0eb-47c0-b420-cc47025a7e2b" name="更改" comment="update game engine">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/edu/group10/monopolydeal/backend/model/card/Card.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/edu/group10/monopolydeal/backend/model/card/Card.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -191,7 +191,7 @@
       <workItem from="1779421611864" duration="16000" />
       <workItem from="1779454002274" duration="2000" />
       <workItem from="1780754307545" duration="3922000" />
-      <workItem from="1780799137506" duration="785000" />
+      <workItem from="1780799137506" duration="1097000" />
     </task>
     <servers />
   </component>
