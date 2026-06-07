@@ -1,7 +1,7 @@
 package edu.group10.monopolydeal.backend.model.card;
 
 /**
- * Card types
+ * Lists the high-level categories used by the game rules.
  */
 public enum CardType {
     PROPERTY,

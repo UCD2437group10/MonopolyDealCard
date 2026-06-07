@@ -1,14 +1,14 @@
 package edu.group10.monopolydeal.backend.game;
 
+import edu.group10.monopolydeal.backend.model.card.Card;
 import edu.group10.monopolydeal.backend.model.player.PlayerState;
 import java.util.List;
 import java.util.Set;
 
 /**
- * Game snapshot for frontend
+ * Immutable snapshot of the current game state for UI rendering.
  */
-public record GameState (
-
+public record GameState(
         boolean started,
         boolean gameOver,
         String winnerPlayerId,
@@ -19,6 +19,7 @@ public record GameState (
         String jsnSourceAction,
         int drawPileCount,
         int discardPileCount,
+        List<Card> discardPileCards,
         List<PlayerState> players,
         Set<String> readyPlayerIds
 ) {

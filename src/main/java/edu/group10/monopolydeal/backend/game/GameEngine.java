@@ -3,6 +3,7 @@ package edu.group10.monopolydeal.backend.game;
 import edu.group10.monopolydeal.backend.model.card.Card;
 import edu.group10.monopolydeal.backend.model.card.CardType;
 import edu.group10.monopolydeal.backend.service.CardMoneyRules;
+import edu.group10.monopolydeal.backend.service.CardPropertyRules;
 import edu.group10.monopolydeal.backend.model.player.Player;
 import edu.group10.monopolydeal.backend.model.player.PlayerState;
 import edu.group10.monopolydeal.backend.service.DeckService;
@@ -16,21 +17,33 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Main process of the game
+ * Implements the main Monopoly Deal game flow and rule enforcement.
  */
 public class GameEngine {
 
+    /** Initial hand size when a game starts. */
     private static final int START_HAND_COUNT = 5;
+    /** Extra draw count when a player starts a turn with no hand cards. */
     private static final int EMPTY_HAND_BONUS_DRAW = 5;
+    /** Normal draw count at the start of a turn. */
     private static final int TURN_START_DRAW = 2;
+    /** Maximum number of card actions allowed per turn. */
     private static final int MAX_ACTION_PER_TURN = 3;
+    /** Maximum hand size allowed before ending a turn. */
     private static final int END_HAND_LIMIT = 7;
+    /** Builds and shuffles decks for new games. */
     private final DeckService deckService;
+    /** Simple AI helper used for local bot players. */
     private final BotTurnService botTurnService = new BotTurnService();
+    /** Player states keyed by player id. */
     private final Map<String, PlayerState> players = new LinkedHashMap<>();
+    /** Draw pile used during normal play. */
     private final Deque<Card> drawPile = new ArrayDeque<>();
+    /** Discard pile used for action cards and reshuffles. */
     private final Deque<Card> discardPile = new ArrayDeque<>();
+    /** Fixed player order for turns and targeting. */
     private final List<String> turnOrder = new ArrayList<>();
+    /** Ready flags collected before the game starts. */
     private final Set<String> readyPlayerIds = new LinkedHashSet<>();
 
     private boolean started;
@@ -41,8 +54,10 @@ public class GameEngine {
     private int actionUsed;
     private PendingJsn pendingJsn;
 
+    /** Timeout used by the Just Say No response window. */
     private static final long JSN_TIMEOUT_MS = 10_000L;
 
+    /** Effect categories that can enter the Just Say No flow. */
     private enum PendingEffectType {
         DEBT_COLLECTOR,
         SLY_DEAL,
@@ -51,6 +66,7 @@ public class GameEngine {
         ITS_MY_BIRTHDAY
     }
 
+    /** Tracks the current Just Say No interaction chain. */
     private static final class PendingJsn {
         private final String actorId;
         private final String sourceAction;
@@ -75,10 +91,12 @@ public class GameEngine {
         }
     }
 
+    /** Creates a game engine backed by the given deck service. */
     public GameEngine(DeckService deckService) {
         this.deckService = deckService;
     }
 
+    /** Adds a player before the game has started. */
     public void addPlayer(Player player) {
         if (started) {
             throw new IllegalStateException("game already started");
@@ -100,6 +118,7 @@ public class GameEngine {
         }
     }
 
+    /** Clears all runtime match state and returns to lobby state. */
     public void resetGame() {
         players.clear();
         drawPile.clear();
@@ -115,6 +134,7 @@ public class GameEngine {
         pendingJsn = null;
     }
 
+    /** Starts a new match after lobby validation succeeds. */
     public void startGame(String operatorId) {
         if (started) {
             throw new IllegalStateException("game already started");
@@ -142,7 +162,7 @@ public class GameEngine {
         for (String playerId : turnOrder) {
             PlayerState playerState = playerState(playerId);
             while (!playerState.hand().isEmpty()) {
-                discardPile.push(playerState.removeHandCard(0));
+                playerState.removeHandCard(0);
             }
             drawCardsInternal(playerId, START_HAND_COUNT);
         }
@@ -155,6 +175,7 @@ public class GameEngine {
         applyStartOfTurnDraw();
     }
 
+    /** Updates one player's ready status in the lobby. */
     public void setReady(String playerId, boolean ready) {
         if (!players.containsKey(playerId)) {
             throw new IllegalArgumentException("unknown player: " + playerId);
@@ -166,6 +187,7 @@ public class GameEngine {
         readyPlayerIds.remove(playerId);
     }
 
+    /** Plays a bankable card from hand into the bank area. */
     public void playMoneyCard(String playerId, int handIndex) {
         ensureTurnAction(playerId);
         PlayerState state = playerState(playerId);
@@ -179,6 +201,7 @@ public class GameEngine {
         actionUsed++;
     }
 
+    /** Plays a property or multi-property card from hand. */
     public void playPropertyCard(String playerId, int handIndex, String colorChoice) {
         ensureTurnAction(playerId);
         Card card = takeHandCard(playerId, handIndex);
@@ -191,6 +214,32 @@ public class GameEngine {
         refreshWinner();
     }
 
+    /** Changes the active color of a previously played multi-property card. */
+    public void changePropertyColor(String playerId, String fromColor, int propertyIndex, String colorChoice) {
+        resolvePendingJsnTimeouts();
+        ensureTurnAlive(playerId);
+        PlayerState state = playerState(playerId);
+        List<Card> group = state.properties().get(fromColor);
+        if (group == null || propertyIndex < 0 || propertyIndex >= group.size()) {
+            throw new IllegalArgumentException("invalid property index");
+        }
+        Card card = group.get(propertyIndex);
+        if (card.type() != CardType.MULTI_PROPERTY) {
+            throw new IllegalArgumentException("only multi-property cards can change color");
+        }
+        String targetColor = resolvePropertyColor(card, colorChoice);
+        if (targetColor.equals(fromColor)) {
+            throw new IllegalArgumentException("property is already in that color group");
+        }
+        if ((state.hasHouse(fromColor) || state.hasHotel(fromColor))
+                && state.propertyCount(fromColor) - 1 < requiredSetSize(fromColor)) {
+            throw new IllegalStateException("cannot move property out of a built complete set");
+        }
+        state.moveProperty(fromColor, propertyIndex, targetColor);
+        refreshWinner();
+    }
+
+    /** Plays a rent card and resolves its payment effect. */
     public void playRentCard(String playerId, int handIndex, String targetPlayerId, String colorChoice, int doubleRentCount) {
         ensureTurnAction(playerId);
         Card rentCard = takeHandCard(playerId, handIndex);
@@ -204,7 +253,7 @@ public class GameEngine {
             rent = rent * (1 << doubleRentCount);
         }
 
-        // All two-color rent cards affect every opponent; wild rent remains single target.
+        // Two-color rent cards affect every opponent, while wild rent stays single-target.
         if (rentCard.color() != null && rentCard.color().contains("/")) {
             for (String opponentId : turnOrder) {
                 if (opponentId.equals(playerId)) {
@@ -219,11 +268,11 @@ public class GameEngine {
             transferPayment(targetPlayerId, playerId, rent);
         }
 
-        discardPile.push(rentCard);
         actionUsed++;
         refreshWinner();
     }
 
+    /** Plays an action card and applies its rule-specific effect. */
     public void playActionCard(String playerId, int handIndex, Map<String, String> payload) {
         ensureTurnAction(playerId);
         Card actionCard = takeHandCard(playerId, handIndex);
@@ -248,7 +297,7 @@ public class GameEngine {
                 case "Just Say No", "Double The Rent" -> throw new IllegalArgumentException(actionCard.name() + " can only be used reactively");
                 default -> throw new IllegalArgumentException("unsupported action card: " + actionCard.name());
             }
-            discardPile.push(actionCard);
+            addToDiscardPileIfAction(actionCard);
             actionUsed++;
             resolvePendingJsnTimeouts();
             if (pendingJsn == null) {
@@ -260,6 +309,7 @@ public class GameEngine {
         }
     }
 
+    /** Submits a Just Say No response for the current waiting player. */
     public void respondJustSayNo(String playerId, boolean useCard) {
         resolvePendingJsnTimeouts();
         if (pendingJsn == null) {
@@ -272,6 +322,7 @@ public class GameEngine {
         resolvePendingJsnTimeouts();
     }
 
+    /** Ends the current turn after validating hand size. */
     public void endTurn(String playerId) {
         ensureTurnAlive(playerId);
         if (playerState(playerId).hand().size() > END_HAND_LIMIT) {
@@ -282,8 +333,8 @@ public class GameEngine {
         applyStartOfTurnDraw();
     }
 
+    /** Builds a UI-friendly snapshot of the current engine state. */
     public GameState snapshot() {
-        resolvePendingJsnTimeouts();
         String currentPlayer = turnOrder.isEmpty() ? "" : turnOrder.get(turnIndex);
         return new GameState(
                 started,
@@ -296,11 +347,22 @@ public class GameEngine {
                 pendingJsn == null ? "" : pendingJsn.sourceAction,
                 drawPile.size(),
                 discardPile.size(),
+                List.copyOf(discardPile),
                 List.copyOf(players.values()),
                 Set.copyOf(readyPlayerIds)
         );
     }
 
+    /**
+     * Advances timeout-based background state in a safe way, then returns a snapshot.
+     * This keeps UI polling from crashing when a delayed effect can no longer be applied.
+     */
+    public GameState pollStateSnapshot() {
+        resolvePendingJsnTimeoutsSafely();
+        return snapshot();
+    }
+
+    /** Lets an automated player complete its turn. */
     public void playBotTurn(String playerId) {
         ensureTurnAlive(playerId);
         PlayerState bot = playerState(playerId);
@@ -362,30 +424,12 @@ public class GameEngine {
     private void applyHandOverflow(String playerId) {
         PlayerState state = playerState(playerId);
         while (state.hand().size() > END_HAND_LIMIT) {
-            discardPile.push(state.removeHandCard(state.hand().size() - 1));
+            state.removeHandCard(state.hand().size() - 1);
         }
     }
 
     private String resolvePropertyColor(Card card, String colorChoice) {
-        if (card.type() == CardType.PROPERTY) {
-            return card.color();
-        }
-        if ("Wild".equals(card.color())) {
-            if (colorChoice == null || colorChoice.isBlank()) {
-                throw new IllegalArgumentException("wild property requires colorChoice");
-            }
-            return colorChoice;
-        }
-        String[] choices = card.color().split("/");
-        if (colorChoice == null || colorChoice.isBlank()) {
-            throw new IllegalArgumentException("multi property requires colorChoice");
-        }
-        for (String choice : choices) {
-            if (choice.equals(colorChoice)) {
-                return colorChoice;
-            }
-        }
-        throw new IllegalArgumentException("invalid colorChoice for card");
+        return CardPropertyRules.resolvePropertyColor(card, colorChoice);
     }
 
     private int calculateRent(String ownerId, Card rentCard, String colorChoice) {
@@ -455,7 +499,7 @@ public class GameEngine {
             if (index < 0) {
                 throw new IllegalStateException("not enough Double The Rent cards");
             }
-            discardPile.push(state.removeHandCard(index));
+            addToDiscardPileIfAction(state.removeHandCard(index));
         }
     }
 
@@ -480,6 +524,18 @@ public class GameEngine {
     private void resolvePendingJsnTimeouts() {
         while (pendingJsn != null && System.currentTimeMillis() - pendingJsn.waitingSinceMs >= JSN_TIMEOUT_MS) {
             advancePendingJsn(false);
+        }
+    }
+
+    private void resolvePendingJsnTimeoutsSafely() {
+        while (pendingJsn != null && System.currentTimeMillis() - pendingJsn.waitingSinceMs >= JSN_TIMEOUT_MS) {
+            try {
+                advancePendingJsn(false);
+            } catch (RuntimeException exception) {
+                pendingJsn = null;
+                refreshWinner();
+                break;
+            }
         }
     }
 
@@ -517,8 +573,13 @@ public class GameEngine {
 
     private void skipAutoPassResponders() {
         while (pendingJsn != null) {
-            if (!hasJustSayNoCard(pendingJsn.waitingPlayerId)) {
+            String responderId = pendingJsn.waitingPlayerId;
+            if (!hasJustSayNoCard(responderId)) {
                 advancePendingJsn(false);
+                continue;
+            }
+            if (playerState(responderId).player().bot()) {
+                advancePendingJsn(true);
                 continue;
             }
             break;
@@ -561,7 +622,18 @@ public class GameEngine {
         if (index < 0) {
             throw new IllegalStateException(playerId + " has no Just Say No");
         }
-        discardPile.push(state.removeHandCard(index));
+        addToDiscardPileIfAction(state.removeHandCard(index));
+    }
+
+    private void addToDiscardPileIfAction(Card card) {
+        if (card != null && card.type() == CardType.ACTION) {
+            discardPile.push(card);
+        }
+    }
+
+    boolean hasPendingJsn() {
+        resolvePendingJsnTimeouts();
+        return pendingJsn != null;
     }
 
     private void transferPayment(String fromId, String toId, int amount) {
@@ -617,8 +689,8 @@ public class GameEngine {
         PlayerState target = playerState(targetId);
         Card mine = actor.removeProperty(myColor, myIndex);
         Card targetCard = target.removeProperty(targetColor, targetIndex);
-        actor.addProperty(targetColor, targetCard);
-        target.addProperty(myColor, mine);
+        actor.addPropertyToExactGroup(targetColor, targetCard);
+        target.addPropertyToExactGroup(myColor, mine);
     }
 
     private void stealCompleteSet(String actorId, String targetId, String color) {
@@ -656,8 +728,14 @@ public class GameEngine {
         if ("Railroad".equals(color) || "Utility".equals(color)) {
             throw new IllegalArgumentException("hotel cannot be used on Railroad/Utility");
         }
+        if (!playerState.hasHouse(color)) {
+            throw new IllegalStateException("hotel requires house first");
+        }
         if (!isCompleteSet(playerState, color)) {
             throw new IllegalStateException("hotel requires complete set");
+        }
+        if (playerState.hasHotel(color)) {
+            throw new IllegalStateException("hotel already exists on this set");
         }
         playerState.addHotel(color);
     }
@@ -665,13 +743,13 @@ public class GameEngine {
     private void refreshWinner() {
         for (String playerId : turnOrder) {
             PlayerState ps = playerState(playerId);
-            int fullSet = 0;
+            Set<String> completedBaseColors = new LinkedHashSet<>();
             for (String color : ps.properties().keySet()) {
                 if (isCompleteSet(ps, color)) {
-                    fullSet++;
+                    completedBaseColors.add(baseColor(color));
                 }
             }
-            if (fullSet >= 3) {
+            if (completedBaseColors.size() >= 3) {
                 gameOver = true;
                 winnerPlayerId = playerId;
                 return;
@@ -685,11 +763,18 @@ public class GameEngine {
     }
 
     private int requiredSetSize(String color) {
-        return switch (color) {
+        return switch (baseColor(color)) {
             case "Brown", "Deep Blue", "Utility" -> 2;
             case "Railroad" -> 4;
             default -> 3;
         };
+    }
+
+    private String baseColor(String color) {
+        if (color == null) {
+            return "";
+        }
+        return color.replaceFirst(" \\(\\d+\\)$", "");
     }
 
     PlayerState playerState(String playerId) {

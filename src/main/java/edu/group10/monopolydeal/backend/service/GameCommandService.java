@@ -8,16 +8,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 统一命令入口，作为前后端桥接层。
+ * Handles command dispatch between transport code and the game engine.
  */
 public class GameCommandService {
 
+    /** Core game engine that executes validated commands. */
     private final GameEngine gameEngine;
 
+    /** Creates a command service for one game engine instance. */
     public GameCommandService(GameEngine gameEngine) {
         this.gameEngine = gameEngine;
     }
 
+    /** Executes a request and converts failures into a response object. */
     public GameResponse handle(GameRequest request) {
         try {
             String action = request.action();
@@ -40,10 +43,10 @@ public class GameCommandService {
                 return ok("player unready");
             }
             if ("DRAW".equals(action)) {
-                return new GameResponse(false, "manual draw is disabled; cards are auto-drawn at turn start or by action effects", gameEngine.snapshot());
+                return new GameResponse(false, "manual draw is disabled; cards are auto-drawn at turn start or by action effects", currentSnapshot());
             }
             if ("DISCARD".equals(action)) {
-                return new GameResponse(false, "manual discard is disabled; cards are only discarded by overflow", gameEngine.snapshot());
+                return new GameResponse(false, "manual discard is disabled; cards are only discarded by overflow", currentSnapshot());
             }
             if ("PLAY_MONEY".equals(action)) {
                 int handIndex = Integer.parseInt(payload.getOrDefault("handIndex", "-1"));
@@ -68,6 +71,16 @@ public class GameCommandService {
                 );
                 return ok("rent charged");
             }
+            if ("CHANGE_PROPERTY_COLOR".equals(action)) {
+                int propertyIndex = Integer.parseInt(payload.getOrDefault("propertyIndex", "-1"));
+                gameEngine.changePropertyColor(
+                        request.playerId(),
+                        payload.getOrDefault("fromColor", ""),
+                        propertyIndex,
+                        payload.getOrDefault("colorChoice", "")
+                );
+                return ok("property color changed");
+            }
             if ("PLAY_ACTION".equals(action)) {
                 int handIndex = Integer.parseInt(payload.getOrDefault("handIndex", "-1"));
                 gameEngine.playActionCard(request.playerId(), handIndex, payload);
@@ -87,41 +100,50 @@ public class GameCommandService {
                 return ok("bot turn played");
             }
             if ("STATE".equals(action)) {
-                return ok("state");
+                return new GameResponse(true, "state", gameEngine.pollStateSnapshot());
             }
             if ("RESET".equals(action)) {
                 gameEngine.resetGame();
                 return ok("game reset");
             }
-            return new GameResponse(false, "unknown action: " + action, gameEngine.snapshot());
+            return new GameResponse(false, "unknown action: " + action, currentSnapshot());
         } catch (Exception exception) {
-            return new GameResponse(false, exception.getMessage(), gameEngine.snapshot());
+            return new GameResponse(false, exception.getMessage(), currentSnapshot());
         }
     }
 
+    /** Builds a successful response using the latest engine snapshot. */
     private GameResponse ok(String message) {
-        return new GameResponse(true, message, gameEngine.snapshot());
+        return new GameResponse(true, message, currentSnapshot());
     }
 
+    /** Returns a stable snapshot without triggering extra rule processing. */
+    private edu.group10.monopolydeal.backend.game.GameState currentSnapshot() {
+        return gameEngine.snapshot();
+    }
+
+    /** Lists the commands supported by the current backend. */
     public List<String> supportedActions() {
-        return List.of("JOIN", "READY", "UNREADY", "START", "PLAY_MONEY", "PLAY_PROPERTY", "PLAY_RENT", "PLAY_ACTION", "RESPOND_JSN", "END_TURN", "BOT_TURN", "STATE", "RESET");
+        return List.of("JOIN", "READY", "UNREADY", "START", "PLAY_MONEY", "PLAY_PROPERTY", "PLAY_RENT", "CHANGE_PROPERTY_COLOR", "PLAY_ACTION", "RESPOND_JSN", "END_TURN", "BOT_TURN", "STATE", "RESET");
     }
 
+    /** Returns a compact description of the payload required by one action. */
     public Map<String, String> actionDoc(String action) {
         return switch (action) {
-            case "JOIN" -> Map.of("payload", "name, bot", "description", "加入房间");
-            case "READY" -> Map.of("payload", "无", "description", "玩家标记就绪");
-            case "UNREADY" -> Map.of("payload", "无", "description", "玩家取消就绪");
-            case "START" -> Map.of("payload", "无", "description", "开始游戏并发牌");
-            case "PLAY_MONEY" -> Map.of("payload", "handIndex", "description", "把手牌放入银行");
-            case "PLAY_PROPERTY" -> Map.of("payload", "handIndex, colorChoice", "description", "打出物业或双面物业");
-            case "PLAY_RENT" -> Map.of("payload", "handIndex, targetPlayerId, colorChoice, doubleRentCount", "description", "收租");
-            case "PLAY_ACTION" -> Map.of("payload", "handIndex + action参数", "description", "打出行动牌（可能进入 JSN 反制）");
-            case "RESPOND_JSN" -> Map.of("payload", "useCard(true/false)", "description", "响应 JSN 弹窗");
-            case "END_TURN" -> Map.of("payload", "无", "description", "结束回合（手牌必须<=7）");
-            case "BOT_TURN" -> Map.of("payload", "无", "description", "让当前 BOT 自动完成本回合");
-            case "STATE" -> Map.of("payload", "无", "description", "获取状态快照");
-            case "RESET" -> Map.of("payload", "无", "description", "清空当前对局状态（玩家/牌堆/回合）");
+            case "JOIN" -> Map.of("payload", "name, bot", "description", "Join a room");
+            case "READY" -> Map.of("payload", "none", "description", "Mark the player as ready");
+            case "UNREADY" -> Map.of("payload", "none", "description", "Cancel ready status");
+            case "START" -> Map.of("payload", "none", "description", "Start the game and deal cards");
+            case "PLAY_MONEY" -> Map.of("payload", "handIndex", "description", "Place a hand card into the bank");
+            case "PLAY_PROPERTY" -> Map.of("payload", "handIndex, colorChoice", "description", "Play a property or multi-property card");
+            case "PLAY_RENT" -> Map.of("payload", "handIndex, targetPlayerId, colorChoice, doubleRentCount", "description", "Charge rent");
+            case "CHANGE_PROPERTY_COLOR" -> Map.of("payload", "fromColor, propertyIndex, colorChoice", "description", "Change the color of an already played multi-property card");
+            case "PLAY_ACTION" -> Map.of("payload", "handIndex plus action parameters", "description", "Play an action card");
+            case "RESPOND_JSN" -> Map.of("payload", "useCard(true/false)", "description", "Respond to a Just Say No prompt");
+            case "END_TURN" -> Map.of("payload", "none", "description", "End the turn when hand size is at most seven");
+            case "BOT_TURN" -> Map.of("payload", "none", "description", "Let the current bot finish its turn");
+            case "STATE" -> Map.of("payload", "none", "description", "Fetch the latest state snapshot");
+            case "RESET" -> Map.of("payload", "none", "description", "Clear the current match state");
             default -> Map.of();
         };
     }

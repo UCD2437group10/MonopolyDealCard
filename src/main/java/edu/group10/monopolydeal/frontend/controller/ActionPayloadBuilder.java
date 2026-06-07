@@ -10,8 +10,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
+/**
+ * Builds UI payload maps for action cards that need extra input.
+ */
 final class ActionPayloadBuilder {
 
+    /** Collects extra parameters for the currently selected action card. */
     Map<String, String> build(
             int selectedHandIndex,
             Card selectedCard,
@@ -36,10 +40,14 @@ final class ActionPayloadBuilder {
             if (color == null) {
                 return null;
             }
-            int idx = dialogOps.choosePropertyIndex("Select property to steal", targetPs == null ? List.of() : targetPs.properties().getOrDefault(color, List.of()));
+            List<Card> cards = targetPs == null ? List.of() : targetPs.properties().getOrDefault(color, List.of());
+            if (cards.isEmpty()) {
+                statusSink.accept("No stealable property in selected color group");
+                return null;
+            }
             payload.put("targetPlayerId", target);
             payload.put("color", color);
-            payload.put("propertyIndex", String.valueOf(idx));
+            payload.put("propertyIndex", String.valueOf(cards.size() - 1));
             return payload;
         }
 
@@ -119,6 +127,9 @@ final class ActionPayloadBuilder {
         return payload;
     }
 
+    /**
+     * Callback contract used to open selection dialogs from the controller.
+     */
     interface DialogOps {
         String chooseColor(String title, List<String> colors);
 

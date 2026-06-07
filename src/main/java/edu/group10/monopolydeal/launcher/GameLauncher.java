@@ -6,18 +6,31 @@ import edu.group10.monopolydeal.frontend.context.FrontendContext;
 import edu.group10.monopolydeal.frontend.network.client.GameClient;
 
 /**
- * Startup entry: start server within the same process and launch JavaFX client.
+ * Starts the local game server and launches the JavaFX client in the same process.
  */
 public final class GameLauncher {
 
+    /**
+     * Prevents instantiation of this utility launcher class.
+     */
     private GameLauncher() {
     }
 
+    /**
+     * Bootstraps the server and client for a local game session.
+     *
+     * @param args command-line arguments passed to the JavaFX application
+     */
     public static void main(String[] args) {
+        // Local server instance used by the desktop client.
         GameServer server = new GameServer(18080);
         server.start();
+
+        // Shared client instance stored in the frontend context.
         GameClient client = new GameClient();
         FrontendContext.setGameClient(client);
+
+        // Launch the JavaFX user interface.
         GameClientApp.launchApp(args);
     }
 }

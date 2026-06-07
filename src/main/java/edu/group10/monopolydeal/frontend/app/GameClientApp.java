@@ -9,26 +9,31 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 /**
- * JavaFX client entry point.
+ * Launches the JavaFX desktop client.
  */
 public class GameClientApp extends Application {
 
+    /** Starts the JavaFX application lifecycle. */
     public static void launchApp(String[] args) {
         launch(args);
     }
 
+    /** Builds and shows the main application window. */
     @Override
     public void start(Stage stage) {
         stage.setTitle("Monopoly Deal");
         Parent root = loadRoot();
         root.getStyleClass().add("main-root");
-        Scene scene = new Scene(root, 1100, 760);
+        Scene scene = new Scene(root, 1280, 920);
         String css = getClass().getResource("/css/main-theme.css").toExternalForm();
         scene.getStylesheets().add(css);
         stage.setScene(scene);
+        stage.setMinWidth(1180);
+        stage.setMinHeight(860);
         stage.show();
     }
 
+    /** Loads the main FXML root after the shared client is prepared. */
     private Parent loadRoot() {
         if (FrontendContext.gameClient() == null) {
             throw new IllegalStateException("game client not initialized");

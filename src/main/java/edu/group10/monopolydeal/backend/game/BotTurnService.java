@@ -4,11 +4,16 @@ import edu.group10.monopolydeal.backend.model.card.Card;
 import edu.group10.monopolydeal.backend.model.card.CardType;
 import edu.group10.monopolydeal.backend.model.player.PlayerState;
 import edu.group10.monopolydeal.backend.service.CardMoneyRules;
+import edu.group10.monopolydeal.backend.service.CardPropertyRules;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Contains simple automated decision making for bot turns.
+ */
 final class BotTurnService {
 
+    /** Plays a full bot turn using simple greedy heuristics. */
     void playTurn(GameEngine engine, String playerId) {
         int tries = 0;
         int actionsPlayed = 0;
@@ -17,30 +22,46 @@ final class BotTurnService {
                 break;
             }
             if (tryPlayMoney(engine, playerId)) {
+                if (engine.hasPendingJsn()) {
+                    return;
+                }
                 tries++;
                 actionsPlayed++;
                 continue;
             }
             if (tryPlayProperty(engine, playerId)) {
+                if (engine.hasPendingJsn()) {
+                    return;
+                }
                 tries++;
                 actionsPlayed++;
                 continue;
             }
             if (engine.playerState(playerId).bankTotal() == 0 && tryPlayCheapestActionAsMoney(engine, playerId)) {
+                if (engine.hasPendingJsn()) {
+                    return;
+                }
                 tries++;
                 actionsPlayed++;
                 continue;
             }
             if (tryPlayAction(engine, playerId)) {
+                if (engine.hasPendingJsn()) {
+                    return;
+                }
                 tries++;
                 actionsPlayed++;
                 continue;
             }
             break;
         }
+        if (engine.hasPendingJsn()) {
+            return;
+        }
         engine.endTurn(playerId);
     }
 
+    /** Picks and banks the first money card found in hand. */
     private boolean tryPlayMoney(GameEngine engine, String playerId) {
         List<Card> hand = engine.playerState(playerId).hand();
         for (int i = 0; i < hand.size(); i++) {
@@ -53,6 +74,7 @@ final class BotTurnService {
         return false;
     }
 
+    /** Plays the first available property card. */
     private boolean tryPlayProperty(GameEngine engine, String playerId) {
         List<Card> hand = engine.playerState(playerId).hand();
         for (int i = 0; i < hand.size(); i++) {
@@ -69,6 +91,7 @@ final class BotTurnService {
         return false;
     }
 
+    /** Banks the cheapest action card when the bot has no money. */
     private boolean tryPlayCheapestActionAsMoney(GameEngine engine, String playerId) {
         List<Card> hand = engine.playerState(playerId).hand();
         int bestIndex = -1;
@@ -87,6 +110,7 @@ final class BotTurnService {
         return false;
     }
 
+    /** Plays the first supported action card with an auto-built payload. */
     private boolean tryPlayAction(GameEngine engine, String playerId) {
         List<Card> hand = engine.playerState(playerId).hand();
         for (int i = 0; i < hand.size(); i++) {
@@ -105,16 +129,14 @@ final class BotTurnService {
     }
 
     private String chooseColorForMultiProperty(GameEngine engine, String playerId, Card card) {
-        if ("Wild".equals(card.color())) {
+        List<String> options = CardPropertyRules.allowedPropertyColors(card);
+        if (options.isEmpty()) {
+            return card.color();
+        }
+        if (options.contains("Deep Blue")) {
             return "Deep Blue";
         }
-        if (card.color().contains("/")) {
-            String[] options = card.color().split("/");
-            if (options.length > 0) {
-                return options[0].trim();
-            }
-        }
-        return card.color();
+        return options.get(0);
     }
 
     private Map<String, String> buildBotActionPayload(GameEngine engine, String playerId, String actionName) {
@@ -156,7 +178,7 @@ final class BotTurnService {
             if ("Railroad".equals(color) || "Utility".equals(color)) {
                 continue;
             }
-            if (isCompleteSet(playerState, color)) {
+            if (isCompleteSet(playerState, color) && playerState.hasHouse(color) && !playerState.hasHotel(color)) {
                 return color;
             }
         }
@@ -177,10 +199,17 @@ final class BotTurnService {
     }
 
     private int requiredSetSize(String color) {
-        return switch (color) {
+        return switch (baseColor(color)) {
             case "Brown", "Deep Blue", "Utility" -> 2;
             case "Railroad" -> 4;
             default -> 3;
         };
+    }
+
+    private String baseColor(String color) {
+        if (color == null) {
+            return "";
+        }
+        return color.replaceFirst(" \\(\\d+\\)$", "");
     }
 }

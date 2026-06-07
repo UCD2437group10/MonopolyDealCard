@@ -1,10 +1,9 @@
 package edu.group10.monopolydeal.backend.model.card;
 
 /**
- * Basic card class
+ * Represents the shared data exposed by every card type.
  */
 public interface Card {
-
     String name();
 
     CardType type();

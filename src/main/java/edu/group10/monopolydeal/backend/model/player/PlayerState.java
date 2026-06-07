@@ -8,26 +8,34 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Player status: hand, bank, and properties
+ * Stores the mutable in-game state for one player.
  */
-
 public class PlayerState {
 
+    /** Immutable player identity. */
     private final Player player;
+    /** Cards currently held in hand. */
     private final List<Card> hand = new ArrayList<>();
+    /** Cards placed in the bank area. */
     private final List<Card> bank = new ArrayList<>();
+    /** Property groups keyed by their current color label. */
     private final Map<String, List<Card>> properties = new LinkedHashMap<>();
+    /** House count for each property group. */
     private final Map<String, Integer> houseByColor = new LinkedHashMap<>();
+    /** Hotel count for each property group. */
     private final Map<String, Integer> hotelByColor = new LinkedHashMap<>();
 
+    /** Creates a state container for the given player. */
     public PlayerState(Player player) {
         this.player = player;
     }
 
+    /** Returns the owner of this state object. */
     public Player player() {
         return player;
     }
 
+    /** Returns a read-only view of the player's hand. */
     public List<Card> hand() {
         return Collections.unmodifiableList(hand);
     }
@@ -64,6 +72,7 @@ public class PlayerState {
         bank.add(card);
     }
 
+    /** Computes the total value of the bank area. */
     public int bankTotal() {
         int total = 0;
         for (Card card : bank) {
@@ -72,8 +81,19 @@ public class PlayerState {
         return total;
     }
 
+    /** Adds a property to the most suitable stack for the chosen color. */
     public void addProperty(String color, Card card) {
+        String targetGroup = findPropertyGroupForAdd(color);
+        addPropertyToExactGroup(targetGroup, card);
+    }
+
+    public void addPropertyToExactGroup(String color, Card card) {
         properties.computeIfAbsent(color, key -> new ArrayList<>()).add(card);
+    }
+
+    public void moveProperty(String fromColor, int index, String toColor) {
+        Card card = removeProperty(fromColor, index);
+        addProperty(toColor, card);
     }
 
     public Card removeProperty(String color, int index) {
@@ -146,4 +166,55 @@ public class PlayerState {
         return hotelByColor.remove(color) == null ? 0 : 1;
     }
 
+    /** Chooses the best destination stack when duplicate color groups exist. */
+    private String findPropertyGroupForAdd(String color) {
+        if (color == null || color.isBlank()) {
+            return color;
+        }
+        String baseColor = baseColor(color);
+        String bestGroup = null;
+        int bestCount = Integer.MAX_VALUE;
+        int maxIndex = 1;
+        for (String key : properties.keySet()) {
+            if (!baseColor(key).equals(baseColor)) {
+                continue;
+            }
+            maxIndex = Math.max(maxIndex, groupIndex(key));
+            int size = propertyCount(key);
+            if (size < requiredSetSize(baseColor) && size < bestCount) {
+                bestCount = size;
+                bestGroup = key;
+            }
+        }
+        if (bestGroup != null) {
+            return bestGroup;
+        }
+        return properties.containsKey(baseColor) ? baseColor + " (" + (maxIndex + 1) + ")" : baseColor;
+    }
+
+    private int requiredSetSize(String color) {
+        return switch (baseColor(color)) {
+            case "Brown", "Deep Blue", "Utility" -> 2;
+            case "Railroad" -> 4;
+            default -> 3;
+        };
+    }
+
+    private String baseColor(String color) {
+        if (color == null) {
+            return "";
+        }
+        return color.replaceFirst(" \\(\\d+\\)$", "");
+    }
+
+    private int groupIndex(String color) {
+        if (color == null) {
+            return 1;
+        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(" \\((\\d+)\\)$").matcher(color);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+        return 1;
+    }
 }

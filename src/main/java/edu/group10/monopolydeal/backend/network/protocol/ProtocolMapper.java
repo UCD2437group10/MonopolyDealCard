@@ -10,11 +10,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Converts between domain state objects and transport records.
+ */
 public final class ProtocolMapper {
 
+    /** Utility class. */
     private ProtocolMapper() {
     }
 
+    /** Converts a domain response into its transport form. */
     public static NetGameResponse toNet(GameResponse response) {
         if (response == null) {
             return new NetGameResponse(false, "empty response", null);
@@ -22,6 +27,7 @@ public final class ProtocolMapper {
         return new NetGameResponse(response.success(), response.message(), toNet(response.gameState()));
     }
 
+    /** Converts a transport response back into its domain form. */
     public static GameResponse toDomain(NetGameResponse response) {
         if (response == null) {
             return new GameResponse(false, "empty response", null);
@@ -29,6 +35,7 @@ public final class ProtocolMapper {
         return new GameResponse(response.success(), response.message(), toDomain(response.gameState()));
     }
 
+    /** Converts the runtime game snapshot to a network-safe snapshot. */
     private static NetGameState toNet(GameState state) {
         if (state == null) {
             return null;
@@ -47,11 +54,13 @@ public final class ProtocolMapper {
                 state.jsnSourceAction(),
                 state.drawPileCount(),
                 state.discardPileCount(),
+                toSimpleCards(state.discardPileCards()),
                 players,
                 state.readyPlayerIds()
         );
     }
 
+    /** Converts one player snapshot to a transport record. */
     private static NetPlayerState toNet(PlayerState state) {
         return new NetPlayerState(
                 state.player(),
@@ -63,6 +72,7 @@ public final class ProtocolMapper {
         );
     }
 
+    /** Restores a domain game snapshot from transport data. */
     private static GameState toDomain(NetGameState state) {
         if (state == null) {
             return null;
@@ -81,11 +91,13 @@ public final class ProtocolMapper {
                 state.jsnSourceAction(),
                 state.drawPileCount(),
                 state.discardPileCount(),
+                state.discardPileCards() == null ? List.of() : new ArrayList<>(state.discardPileCards()),
                 players,
                 state.readyPlayerIds() == null ? java.util.Set.of() : state.readyPlayerIds()
         );
     }
 
+    /** Restores a mutable player state from transport data. */
     private static PlayerState toDomain(NetPlayerState state) {
         PlayerState playerState = new PlayerState(state.player());
         if (state.hand() != null) {
@@ -102,7 +114,7 @@ public final class ProtocolMapper {
             for (Map.Entry<String, List<SimpleCard>> entry : state.properties().entrySet()) {
                 String color = entry.getKey();
                 for (SimpleCard card : entry.getValue()) {
-                    playerState.addProperty(color, card);
+                    playerState.addPropertyToExactGroup(color, card);
                 }
             }
         }

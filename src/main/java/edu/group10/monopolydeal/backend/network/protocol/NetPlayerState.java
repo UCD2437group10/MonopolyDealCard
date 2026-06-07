@@ -5,6 +5,9 @@ import edu.group10.monopolydeal.backend.model.player.Player;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Network-safe player state payload composed of simple record types.
+ */
 public record NetPlayerState(
         Player player,
         List<SimpleCard> hand,

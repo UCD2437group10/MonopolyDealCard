@@ -17,17 +17,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 前端客户端（当前为同进程调用，便于前后端联调）。
+ * Frontend client that can talk to a local server or a TCP server.
  */
 public class GameClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GameClient.class);
+    /** JSON codec shared by local and TCP request paths. */
     private final JsonCodec jsonCodec = new JsonCodec();
+    /** Optional in-process server used by local mode. */
     private GameServer localServer;
+    /** Active TCP socket when running in remote mode. */
     private Socket socket;
     private BufferedReader reader;
     private BufferedWriter writer;
 
+    /** Opens a TCP connection unless a local server is already bound. */
     public void connect(String host, int port) {
         if (localServer != null) {
             LOGGER.info("Using local bound server, skip tcp connect {}:{}", host, port);
@@ -45,11 +49,8 @@ public class GameClient {
         }
     }
 
-    public void bindLocalServer(GameServer server) {
-        closeSocketQuietly();
-        this.localServer = server;
-    }
 
+    /** Sends one command and returns the mapped domain response. */
     public synchronized GameResponse send(String action, String playerId, Map<String, String> payload) {
         GameRequest request = new GameRequest(action, playerId, payload);
         if (localServer != null) {
@@ -73,6 +74,7 @@ public class GameClient {
         }
     }
 
+    /** Closes the current socket resources without throwing. */
     private void closeSocketQuietly() {
         try {
             if (reader != null) {

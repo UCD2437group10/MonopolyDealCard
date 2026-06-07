@@ -8,13 +8,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Frontend state projection layer.
+ * Projects backend state into strings and helpers used by the UI.
  */
 public class GameViewModel {
+    /** Latest full game snapshot received by the frontend. */
     private GameState state;
+    /** Ready player ids mirrored from the latest snapshot. */
     private Set<String> readyPlayers = Set.of();
+    /** Local player id used for turn checks and lookups. */
     private String currentPlayerId = "";
 
+    /** Replaces the currently displayed state with fresh data. */
     public void update(GameState state, Set<String> readyPlayers, String currentPlayerId) {
         this.state = state;
         this.readyPlayers = readyPlayers == null ? Set.of() : Set.copyOf(readyPlayers);
@@ -25,10 +29,12 @@ public class GameViewModel {
         return "Monopoly Deal";
     }
 
+    /** Returns whether the local player is the current turn owner. */
     public boolean isMyTurn() {
         return state != null && state.currentPlayerId() != null && state.currentPlayerId().equals(currentPlayerId);
     }
 
+    /** Finds the local player's state inside the snapshot. */
     public PlayerState findMe() {
         return findById(currentPlayerId);
     }
@@ -45,6 +51,7 @@ public class GameViewModel {
         return null;
     }
 
+    /** Returns whether every human player is ready to start. */
     public boolean allHumanReady() {
         if (state == null) {
             return false;
@@ -89,7 +96,7 @@ public class GameViewModel {
     }
 
     public int requiredSetSize(String color) {
-        return switch (color) {
+        return switch (baseColor(color)) {
             case "Brown", "Deep Blue", "Utility" -> 2;
             case "Railroad" -> 4;
             default -> 3;
@@ -129,5 +136,12 @@ public class GameViewModel {
                 + "\nBank total: $" + p.bankTotal()
                 + "\n\nBank:\n" + bank
                 + "\n\nProperties:\n" + properties;
+    }
+
+    private String baseColor(String color) {
+        if (color == null) {
+            return "";
+        }
+        return color.replaceFirst(" \\(\\d+\\)$", "");
     }
 }

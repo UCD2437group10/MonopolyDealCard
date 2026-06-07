@@ -3,8 +3,8 @@ package edu.group10.monopolydeal.frontend.view;
 import edu.group10.monopolydeal.backend.model.card.Card;
 import edu.group10.monopolydeal.backend.model.card.CardType;
 import edu.group10.monopolydeal.backend.model.player.PlayerState;
+import edu.group10.monopolydeal.backend.service.CardPropertyRules;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import javafx.scene.control.ChoiceDialog;
@@ -13,21 +13,11 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 /**
- * A centralized UI service responsible for creating, configuring, and displaying modal dialogs.
- * It captures user input during gameplay operations, such as selecting target opponents,
- * picking property colors, or confirming card usage.
+ * Creates and styles the small dialogs used by gameplay actions.
  */
 public class GameDialogService {
 
-    /**
-     * Displays a dialog prompting the current player to select an opponent as a target for a game action.
-     *
-     * @param players           the list of all current {@link PlayerState} objects in the game.
-     * @param myPlayerId        the ID of the local player, which will be excluded from the options.
-     * @param preferredTargetId the ID of an opponent to pre-select by default, if present in the list.
-     * @param ownerPane         the parent {@link VBox} used to determine the dialog's modality and owner window.
-     * @return the ID of the selected target player, or {@code null} if the dialog is canceled or no valid opponents exist.
-     */
+    /** Lets the user choose a target player from the current snapshot. */
     public String chooseTargetPlayerId(List<PlayerState> players, String myPlayerId, String preferredTargetId, VBox ownerPane) {
         List<String> options = players == null ? List.of() : players.stream()
                 .map(ps -> ps.player().id())
@@ -44,14 +34,7 @@ public class GameDialogService {
         return dialog.showAndWait().orElse(null);
     }
 
-    /**
-     * Displays a generic dialog allowing the user to select a color string from a provided list.
-     *
-     * @param title     the header text to display in the dialog.
-     * @param colors    the list of valid color strings to choose from.
-     * @param ownerPane the parent {@link VBox} used to determine the dialog's owner window.
-     * @return the selected color string, or {@code null} if the dialog is canceled or the list is empty.
-     */
+    /** Opens a generic color-selection dialog. */
     public String chooseColorFromList(String title, List<String> colors, VBox ownerPane) {
         if (colors == null || colors.isEmpty()) {
             return null;
@@ -63,16 +46,7 @@ public class GameDialogService {
         return dialog.showAndWait().orElse(null);
     }
 
-    /**
-     * Displays a dialog prompting the user to select a specific property card from a given list.
-     * Options are presented dynamically with their list index and corresponding card name.
-     *
-     * @param title     the header text to display in the dialog.
-     * @param cards     the list of available property {@link Card} objects.
-     * @param ownerPane the parent {@link VBox} used to determine the dialog's owner window.
-     * @return the integer index of the selected property within the provided list.
-     * @throws IllegalStateException if the provided list is empty, or if the user cancels the dialog.
-     */
+    /** Lets the user choose one property card from a color group. */
     public int choosePropertyIndex(String title, List<Card> cards, VBox ownerPane) {
         if (cards == null || cards.isEmpty()) {
             throw new IllegalStateException("No property available under selected color");
@@ -92,51 +66,52 @@ public class GameDialogService {
         return Integer.parseInt(result.get().split(":")[0].trim());
     }
 
-    /**
-     * Displays a specialized dialog asking the user how many "Double The Rent" cards they wish to stack and play.
-     *
-     * @param ownerPane the parent {@link VBox} used to determine the dialog's owner window.
-     * @return a string representing the chosen count ("0", "1", or "2"). Returns "0" if the dialog is canceled.
-     */
+    /** Opens a generic option picker and returns the chosen index. */
+    public int chooseOptionIndex(String title, String dialogTitle, List<String> options, VBox ownerPane) {
+        if (options == null || options.isEmpty()) {
+            throw new IllegalStateException("No option available");
+        }
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(options.get(0), options);
+        styleDialog(dialog, ownerPane);
+        dialog.setTitle(dialogTitle);
+        dialog.setHeaderText(title);
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty()) {
+            throw new IllegalStateException("No option selected");
+        }
+        return options.indexOf(result.get());
+    }
+
+    /** Asks how many Double The Rent cards to consume. */
     public String chooseDoubleRentCount(VBox ownerPane) {
         List<String> options = List.of("0", "1", "2");
         ChoiceDialog<String> dialog = new ChoiceDialog<>("0", options);
         styleDialog(dialog, ownerPane);
         dialog.setTitle("Rent Multiplier");
         dialog.setHeaderText("Select Double The Rent usage count");
-        return dialog.showAndWait().orElse("0");
+        return dialog.showAndWait().orElse(null);
     }
 
-    /**
-     * Prompts the user to select the active color for a multi-color property card being played.
-     * Automatically handles both 10-color "Wild" cards and standard dual-color cards by parsing the color string.
-     *
-     * @param card      the multi-color property {@link Card} being played.
-     * @param ownerPane the parent {@link VBox} used to determine the dialog's owner window.
-     * @return the selected color string, or an empty string if the card is invalid or the dialog is canceled.
-     */
+    /** Asks for the color used when playing a multi-property card. */
     public String choosePropertyColor(Card card, VBox ownerPane) {
         if (card == null || card.type() != CardType.MULTI_PROPERTY) {
             return "";
         }
-        if ("Wild".equalsIgnoreCase(card.color())) {
-            return chooseColorFromList("Select color for wild property", List.of(
-                    "Brown", "Light Blue", "Pink", "Orange", "Red", "Yellow", "Green", "Deep Blue", "Railroad", "Utility"), ownerPane);
-        }
-        List<String> colors = Arrays.stream(card.color().split("/")).map(String::trim).toList();
-        return chooseColorFromList("Select color for dual-color property", colors, ownerPane);
+        return chooseColorFromList("Select color for property", CardPropertyRules.allowedPropertyColors(card), ownerPane);
     }
 
-    /**
-     * Determines the active color used when playing a rent card.
-     * For wild rent cards ("Any") or dual rent cards ("ColorA/ColorB"), it prompts the user to select
-     * the desired color. Standard mono-color rent cards are resolved automatically.
-     *
-     * @param card      the rent {@link Card} being played.
-     * @param me        the current {@link PlayerState}, used to restrict "Wild Rent" options to owned property colors.
-     * @param ownerPane the parent {@link VBox} used to determine the dialog's owner window.
-     * @return the resolved or selected color string, or an empty string if invalid or canceled.
-     */
+    /** Asks for the destination color when moving a multi-property card. */
+    public String choosePropertyColorForMove(Card card, String currentColor, VBox ownerPane) {
+        if (card == null || card.type() != CardType.MULTI_PROPERTY) {
+            return null;
+        }
+        List<String> colors = CardPropertyRules.allowedPropertyColors(card).stream()
+                .filter(color -> !color.equals(currentColor))
+                .toList();
+        return chooseColorFromList("Select new color for property", colors, ownerPane);
+    }
+
+    /** Resolves or asks for the color used by a rent card. */
     public String chooseRentColor(Card card, PlayerState me, VBox ownerPane) {
         if (card == null) {
             return "";
@@ -149,18 +124,12 @@ public class GameDialogService {
             return chooseColorFromList("Select rent color", me == null ? List.of() : List.copyOf(me.properties().keySet()), ownerPane);
         }
         if (color.contains("/")) {
-            return chooseColorFromList("Select rent color", Arrays.stream(color.split("/")).map(String::trim).toList(), ownerPane);
+            return chooseColorFromList("Select rent color", java.util.Arrays.stream(color.split("/")).map(String::trim).toList(), ownerPane);
         }
         return color;
     }
 
-    /**
-     * Applies a standardized custom CSS theme and window ownership properties to a given dialog.
-     * This ensures all popups match the application's overall visual aesthetic and modal behavior.
-     *
-     * @param dialog    the JavaFX {@link Dialog} instance to style.
-     * @param ownerPane the parent {@link VBox} used to extract the parent {@link Window} hierarchy.
-     */
+    /** Applies the shared dialog theme and owner window. */
     public void styleDialog(Dialog<?> dialog, VBox ownerPane) {
         if (dialog == null || dialog.getDialogPane() == null) {
             return;
@@ -177,4 +146,5 @@ public class GameDialogService {
             dialog.initOwner(owner);
         }
     }
+
 }

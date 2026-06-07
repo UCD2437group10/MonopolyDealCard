@@ -8,10 +8,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 牌堆服务：按 docs/cardList.xls 维护当前牌堆。
+ * Builds the Monopoly Deal deck from the project card definitions.
  */
 public class DeckService {
 
+    /** Creates and shuffles a full deck for a new match. */
     public List<Card> createDeck() {
         List<Card> cards = new ArrayList<>();
 
@@ -67,7 +68,7 @@ public class DeckService {
         add(cards, "Hotel", CardType.ACTION, "-", 4, 4);
         add(cards, "Double The Rent", CardType.ACTION, "-", 1, 2);
 
-        // Rent (13) - 按 docs/cardList.xls：均为多色/万能收租
+        // Rent cards are multi-color or wild, following the project data sheet.
         add(cards, "Rent Light Blue-Brown", CardType.RENT, "Light Blue/Brown", 1, 2);
         add(cards, "Rent Orange-Pink", CardType.RENT, "Orange/Pink", 1, 2);
         add(cards, "Rent Yellow-Red", CardType.RENT, "Yellow/Red", 1, 2);
@@ -90,6 +91,7 @@ public class DeckService {
         return cards;
     }
 
+    /** Adds repeated copies of one card definition to the deck list. */
     private void add(List<Card> cards, String name, CardType cardType, String color, int value, int count) {
         for (int i = 0; i < count; i++) {
             cards.add(new SimpleCard(name, cardType, color, value));

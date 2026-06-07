@@ -6,45 +6,40 @@ import edu.group10.monopolydeal.backend.model.card.CardType;
 import edu.group10.monopolydeal.backend.model.player.PlayerState;
 import edu.group10.monopolydeal.backend.network.protocol.GameResponse;
 import edu.group10.monopolydeal.backend.network.server.GameServer;
+import edu.group10.monopolydeal.backend.service.CardPropertyRules;
 import edu.group10.monopolydeal.frontend.context.FrontendContext;
 import edu.group10.monopolydeal.frontend.network.client.GameClient;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
-import edu.group10.monopolydeal.frontend.view.CardImageRegistry;
+import edu.group10.monopolydeal.frontend.view.AudioFeedbackService;
 import edu.group10.monopolydeal.frontend.view.GameBoardView;
 import edu.group10.monopolydeal.frontend.view.GameDialogService;
 import edu.group10.monopolydeal.frontend.viewmodel.GameViewModel;
-import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
-import javafx.animation.ParallelTransition;
 import javafx.animation.Timeline;
-import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.geometry.Bounds;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceDialog;
-import javafx.scene.control.ContentDisplay;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 /**
- * Main view controller: main menu (single/multiplayer) + game interface.
+ * Controls the main menu and the in-game JavaFX screen.
  */
 public class MainViewController {
     @FXML private VBox menuPane;
@@ -61,6 +56,8 @@ public class MainViewController {
     @FXML private TextField menuPlayerNameField;
     @FXML private CheckBox menuBotCheckBox;
     @FXML private CheckBox menuHostServerCheckBox;
+    @FXML private Slider menuVolumeSlider;
+    @FXML private Label menuVolumeLabel;
 
     @FXML private Label statusLabel;
     @FXML private Label reconnectLabel;
@@ -68,7 +65,9 @@ public class MainViewController {
     @FXML private Label selectedCardLabel;
 
     @FXML private Button readyButton;
-    @FXML private FlowPane myHandPane;
+    @FXML private Button startButton;
+    @FXML private ScrollPane myHandScrollPane;
+    @FXML private HBox myHandPane;
     @FXML private FlowPane myBankPane;
     @FXML private FlowPane opponentsPane;
     @FXML private VBox myPropertyBox;
@@ -81,33 +80,40 @@ public class MainViewController {
     @FXML private Button endTurnButton;
     @FXML private Button playMoneyButton;
     @FXML private Button playPropertyButton;
+    @FXML private Button changePropertyColorButton;
     @FXML private Button playRentButton;
     @FXML private Button playActionButton;
 
+    /** Shared client used for all frontend requests. */
     private GameClient client;
+    /** Latest snapshot returned by the backend. */
     private GameState currentState;
-    private Card selectedCard;
-    private int selectedHandIndex = -1;
     private boolean connected;
     private boolean joined;
     private boolean botPlaying;
     private boolean gameOverHandled;
     private boolean jsnPromptShowing;
     private String selectedMode = "single";
+    private int singleBotCount = 1;
     private final Set<String> singleBotIds = new HashSet<>();
-    private String preferredTargetId = "";
 
     private String currentPlayerId = "p1";
     private GameServer hostedServer;
+    /** Helper services used to render and coordinate the UI. */
     private final GameBoardView gameBoardView = new GameBoardView();
     private final GameViewModel gameViewModel = new GameViewModel();
     private final GameDialogService gameDialogService = new GameDialogService();
+    private final AudioFeedbackService audioFeedbackService = new AudioFeedbackService();
     private final ActionPayloadBuilder actionPayloadBuilder = new ActionPayloadBuilder();
     private final NetworkErrorHandler networkErrorHandler = new NetworkErrorHandler();
     private final PollingCoordinator pollingCoordinator = new PollingCoordinator();
+    private MainViewHandController handController;
+    private MainViewBoardCoordinator boardCoordinator;
+    private MainViewEffects effects;
 
     private final Set<String> readyPlayers = new HashSet<>();
 
+    /** Initializes the controller after the FXML tree is loaded. */
     @FXML
     public void initialize() {
         this.client = FrontendContext.gameClient();
@@ -115,41 +121,71 @@ public class MainViewController {
             menuStatusLabel.setText("Error: GameClient is not initialized");
             return;
         }
-        setupDeckPileUI();
+        handController = new MainViewHandController(gameBoardView, audioFeedbackService, myHandPane, selectedCardLabel);
+        boardCoordinator = new MainViewBoardCoordinator(
+                gameBoardView,
+                gameViewModel,
+                gameDialogService,
+                myBankPane,
+                opponentsPane,
+                myPropertyBox,
+                gamePane,
+                playersTextArea,
+                turnLabel,
+                endTurnButton,
+                playMoneyButton,
+                playPropertyButton,
+                changePropertyColorButton,
+                playRentButton,
+                playActionButton);
+        effects = new MainViewEffects(
+                gameDialogService,
+                audioFeedbackService,
+                gamePane,
+                centerBoardPane,
+                drawPileButton,
+                discardPileButton,
+                opponentsPane,
+                myHandPane);
+        effects.setupDeckPileUI();
         setupRightLogAreaStyle();
+        setupHandPaneUI();
+        setupVolumeControl();
         updateActionDisabled(true);
         applyModeUI();
         startPolling();
     }
 
-    private void setupDeckPileUI() {
-        configureDeckButton(drawPileButton);
-        configureDeckButton(discardPileButton);
+    private void setupVolumeControl() {
+        if (menuVolumeSlider == null || menuVolumeLabel == null) {
+            return;
+        }
+        audioFeedbackService.setVolume(menuVolumeSlider.getValue() / 100.0);
+        updateVolumeLabel();
+        menuVolumeSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+            audioFeedbackService.setVolume(newValue.doubleValue() / 100.0);
+            updateVolumeLabel();
+        });
     }
 
-    private void configureDeckButton(Button button) {
-        if (button == null) {
+    private void updateVolumeLabel() {
+        if (menuVolumeSlider == null || menuVolumeLabel == null) {
             return;
         }
-        button.setStyle("-fx-background-color: rgba(22,19,14,0.95);"
-                + "-fx-border-color: #8b6e26; -fx-border-width: 1.2;"
-                + "-fx-text-fill: #f0d57a; -fx-font-weight: bold; -fx-padding: 8;");
-        button.setContentDisplay(ContentDisplay.TOP);
-        button.setGraphicTextGap(6);
-        Image image = CardImageRegistry.loadImage(CardImageRegistry.cardBackResource());
-        if (image == null) {
-            return;
-        }
-        ImageView imageView = new ImageView(image);
-        imageView.setFitWidth(124);
-        imageView.setFitHeight(162);
-        imageView.setPreserveRatio(false);
-        button.setGraphic(imageView);
+        menuVolumeLabel.setText(Math.round(menuVolumeSlider.getValue()) + "%");
     }
 
     private void setupRightLogAreaStyle() {
         styleLogTextArea(actionLogArea);
         styleLogTextArea(playersTextArea);
+    }
+
+    private void setupHandPaneUI() {
+        if (myHandScrollPane != null) {
+            myHandScrollPane.setPannable(true);
+            myHandScrollPane.setFitToWidth(false);
+            myHandScrollPane.setFitToHeight(true);
+        }
     }
 
     private void styleLogTextArea(TextArea area) {
@@ -197,10 +233,17 @@ public class MainViewController {
         menuStatusLabel.setText("Selected: Multiplayer (host locally or join as client)");
     }
 
+    /** Enters the selected mode and joins or restores a room. */
     @FXML
     private void onEnterGame() {
         if (client == null) {
             menuStatusLabel.setText("Error: GameClient is not initialized");
+            return;
+        }
+
+        if (connected && joined) {
+            showGamePane();
+            renderResponse(client.send("STATE", playerId(), Map.of()), true);
             return;
         }
 
@@ -246,13 +289,13 @@ public class MainViewController {
         }
 
         if ("single".equals(selectedMode)) {
-            int botCount = chooseSingleBotCount();
-            if (botCount <= 0) {
+            singleBotCount = chooseSingleBotCount();
+            if (singleBotCount <= 0) {
                 menuStatusLabel.setText("Single-player entry canceled");
                 joined = false;
                 return;
             }
-            if (!enterSingleMode(pid, botCount)) {
+            if (!enterSingleMode(pid, singleBotCount)) {
                 return;
             }
         }
@@ -264,18 +307,11 @@ public class MainViewController {
 
     @FXML
     private void onBackToMenu() {
-        if ("single".equals(selectedMode) && connected && joined && client != null) {
-            client.send("RESET", playerId(), Map.of());
-        }
-        if ("multi".equals(selectedMode) && menuHostServerCheckBox != null && menuHostServerCheckBox.isSelected()) {
-            hostedServer = null;
-        }
-        clearLocalGameState();
         menuPane.setVisible(true);
         menuPane.setManaged(true);
         gamePane.setVisible(false);
         gamePane.setManaged(false);
-        menuStatusLabel.setText("Returned to main menu");
+        menuStatusLabel.setText("Returned to lobby");
     }
 
     @FXML
@@ -285,7 +321,7 @@ public class MainViewController {
                 client.send("RESET", playerId(), Map.of());
             }
         } catch (Exception ignored) {
-            // Best-effort cleanup before exiting process.
+            // Best-effort cleanup before exiting the application.
         } finally {
             Platform.exit();
             System.exit(0);
@@ -294,34 +330,36 @@ public class MainViewController {
 
     private void clearLocalGameState() {
         currentState = null;
-        selectedCard = null;
-        selectedHandIndex = -1;
         joined = false;
         botPlaying = false;
         gameOverHandled = false;
         readyPlayers.clear();
         singleBotIds.clear();
-        preferredTargetId = "";
         selectedCardLabel.setText("Selected card: none");
         turnLabel.setText("Current turn: -");
         statusLabel.setText("Returned to main menu");
         reconnectLabel.setText("");
         networkErrorHandler.markDisconnected();
         connected = networkErrorHandler.isConnected();
-        playersTextArea.setText("No state yet");
         actionLogArea.clear();
-        myHandPane.getChildren().clear();
-        myBankPane.getChildren().clear();
-        myPropertyBox.getChildren().clear();
-        opponentsPane.getChildren().clear();
+        handController.clear();
+        boardCoordinator.clear();
         updateActionDisabled(true);
     }
 
     private void applyModeUI() {
         boolean multi = "multi".equals(selectedMode);
+        boolean showLobbyControls = multi && (currentState == null || !currentState.started());
         multiConfigPane.setVisible(multi);
         multiConfigPane.setManaged(multi);
-
+        if (readyButton != null) {
+            readyButton.setVisible(showLobbyControls);
+            readyButton.setManaged(showLobbyControls);
+        }
+        if (startButton != null) {
+            startButton.setVisible(showLobbyControls);
+            startButton.setManaged(showLobbyControls);
+        }
         singleModeButton.setStyle(multi ? "" : "-fx-font-weight: bold;");
         multiModeButton.setStyle(multi ? "-fx-font-weight: bold;" : "");
     }
@@ -398,12 +436,19 @@ public class MainViewController {
 
     @FXML
     private void onReadyToggle() {
+        if ("single".equals(selectedMode)) {
+            return;
+        }
         String action = readyPlayers.contains(playerId()) ? "UNREADY" : "READY";
         renderResponse(client.send(action, playerId(), Map.of()), true);
     }
 
     @FXML
     private void onStart() {
+        if ("single".equals(selectedMode)) {
+            statusLabel.setText("Single-player starts automatically");
+            return;
+        }
         if (!allHumanReady()) {
             statusLabel.setText("Please make all non-BOT players ready first");
             return;
@@ -417,38 +462,139 @@ public class MainViewController {
     }
 
     @FXML
+    private void onResetGame() {
+        if (client == null || !connected || !joined) {
+            menuStatusLabel.setText("Please enter a room before resetting the game");
+            return;
+        }
+
+        GameResponse resetResponse = client.send("RESET", playerId(), Map.of());
+        if (!resetResponse.success()) {
+            if (gamePane.isVisible()) {
+                renderResponse(resetResponse, true);
+            } else {
+                menuStatusLabel.setText("Reset failed: " + resetResponse.message());
+            }
+            return;
+        }
+
+        clearLocalGameState();
+        restoreInitialMenuState();
+        menuStatusLabel.setText("Game reset to startup state");
+        appendActionLog("Game reset to startup state");
+    }
+
+    @FXML
     private void onEndTurn() {
         renderResponse(client.send("END_TURN", playerId(), Map.of()), true);
     }
 
+    /** Sends the currently selected card to the bank area. */
     @FXML
     private void onPlayMoney() {
         if (!ensureCardSelected()) {
             return;
         }
-        playCardWithCenterAnimation(() -> client.send("PLAY_MONEY", playerId(), Map.of("handIndex", String.valueOf(selectedHandIndex))));
+        playCardWithCenterAnimation(() -> client.send("PLAY_MONEY", playerId(), Map.of("handIndex", String.valueOf(handController.selectedHandIndex()))), true);
     }
 
+    /** Plays the currently selected property card. */
     @FXML
     private void onPlayProperty() {
         if (!ensureCardSelected()) {
             return;
         }
         Map<String, String> payload = new LinkedHashMap<>();
-        payload.put("handIndex", String.valueOf(selectedHandIndex));
-        putIfNotBlank(payload, "colorChoice", gameDialogService.choosePropertyColor(selectedCard, gamePane));
-        playCardWithCenterAnimation(() -> client.send("PLAY_PROPERTY", playerId(), payload));
+        payload.put("handIndex", String.valueOf(handController.selectedHandIndex()));
+        Card selectedCard = handController.selectedCard();
+        String colorChoice = gameDialogService.choosePropertyColor(selectedCard, gamePane);
+        if (selectedCard != null && selectedCard.type() == CardType.MULTI_PROPERTY && colorChoice == null) {
+            statusLabel.setText("Property play canceled");
+            return;
+        }
+        putIfNotBlank(payload, "colorChoice", colorChoice);
+        playCardWithCenterAnimation(() -> client.send("PLAY_PROPERTY", playerId(), payload), true);
     }
 
+    /** Changes the color assignment of an already played multi-property card. */
+    @FXML
+    private void onChangePropertyColor() {
+        if (!gameViewModel.isMyTurn()) {
+            statusLabel.setText("You can only change property color during your own turn");
+            return;
+        }
+        PlayerState me = findMe();
+        if (me == null || me.properties().isEmpty()) {
+            statusLabel.setText("You have no properties to adjust");
+            return;
+        }
+
+        List<RecolorCandidate> candidates = me.properties().entrySet().stream()
+                .flatMap(entry -> {
+                    String fromColor = entry.getKey();
+                    List<Card> cards = entry.getValue();
+                    return cards.stream()
+                            .filter(card -> card.type() == CardType.MULTI_PROPERTY)
+                            .map(card -> new RecolorCandidate(fromColor, cards.indexOf(card), card));
+                })
+                .toList();
+        if (candidates.isEmpty()) {
+            statusLabel.setText("You have no dual-color or wild property to recolor");
+            return;
+        }
+
+        int candidateIndex;
+        try {
+            List<String> options = candidates.stream()
+                    .map(candidate -> buildRecolorOptionText(candidate.fromColor(), candidate.card()))
+                    .toList();
+            candidateIndex = gameDialogService.chooseOptionIndex(
+                    "Select which color-changing property to adjust",
+                    "Select Property",
+                    options,
+                    gamePane);
+        } catch (IllegalStateException exception) {
+            statusLabel.setText(exception.getMessage());
+            return;
+        }
+        RecolorCandidate candidate = candidates.get(candidateIndex);
+        String colorChoice = gameDialogService.choosePropertyColorForMove(candidate.card(), candidate.fromColor(), gamePane);
+        if (colorChoice == null) {
+            statusLabel.setText("Property color change canceled");
+            return;
+        }
+
+        renderResponse(client.send("CHANGE_PROPERTY_COLOR", playerId(), Map.of(
+                "fromColor", candidate.fromColor(),
+                "propertyIndex", String.valueOf(candidate.propertyIndex()),
+                "colorChoice", colorChoice
+        )), true);
+    }
+
+    /** Plays the currently selected rent card. */
     @FXML
     private void onPlayRent() {
         if (!ensureCardSelected()) {
             return;
         }
         Map<String, String> payload = new LinkedHashMap<>();
-        payload.put("handIndex", String.valueOf(selectedHandIndex));
-        putIfNotBlank(payload, "colorChoice", gameDialogService.chooseRentColor(selectedCard, findById(playerId()), gamePane));
-        payload.put("doubleRentCount", gameDialogService.chooseDoubleRentCount(gamePane));
+        payload.put("handIndex", String.valueOf(handController.selectedHandIndex()));
+        Card selectedCard = handController.selectedCard();
+        String colorChoice = gameDialogService.chooseRentColor(selectedCard, findById(playerId()), gamePane);
+        boolean rentNeedsColorChoice = selectedCard != null
+                && selectedCard.color() != null
+                && ("Any".equalsIgnoreCase(selectedCard.color()) || selectedCard.color().contains("/"));
+        if (rentNeedsColorChoice && colorChoice == null) {
+            statusLabel.setText("Rent play canceled");
+            return;
+        }
+        putIfNotBlank(payload, "colorChoice", colorChoice);
+        String doubleRentCount = gameDialogService.chooseDoubleRentCount(gamePane);
+        if (doubleRentCount == null) {
+            statusLabel.setText("Rent play canceled");
+            return;
+        }
+        payload.put("doubleRentCount", doubleRentCount);
         boolean allOpponentsRent = selectedCard != null
                 && selectedCard.color() != null
                 && selectedCard.color().contains("/");
@@ -459,17 +605,18 @@ public class MainViewController {
             }
             payload.put("targetPlayerId", targetPlayerId);
         }
-        playCardWithCenterAnimation(() -> client.send("PLAY_RENT", playerId(), payload));
+        playCardWithCenterAnimation(() -> client.send("PLAY_RENT", playerId(), payload), true);
     }
 
+    /** Plays the currently selected action card with any extra payload. */
     @FXML
     private void onPlayAction() {
         if (!ensureCardSelected()) {
             return;
         }
         Map<String, String> payload = actionPayloadBuilder.build(
-                selectedHandIndex,
-                selectedCard,
+                handController.selectedHandIndex(),
+                handController.selectedCard(),
                 this::chooseTargetPlayerId,
                 this::findById,
                 this::findMe,
@@ -489,18 +636,16 @@ public class MainViewController {
         if (payload == null) {
             return;
         }
-        playCardWithCenterAnimation(() -> client.send("PLAY_ACTION", playerId(), payload));
+        playCardWithCenterAnimation(() -> client.send("PLAY_ACTION", playerId(), payload), true);
     }
 
     private boolean ensureCardSelected() {
-        if (selectedHandIndex < 0) {
-            statusLabel.setText("Please select a hand card first");
-            return false;
-        }
-        return true;
+        return handController.ensureCardSelected(statusLabel);
     }
 
+    /** Applies one backend response to the controller state and UI. */
     private void renderResponse(GameResponse response, boolean showStatus) {
+        GameState previousState = currentState;
         if (showStatus) {
             statusLabel.setText((response.success() ? "Success: " : "Failed: ") + response.message());
             appendActionLog((response.success() ? "Success: " : "Failed: ") + response.message());
@@ -512,222 +657,81 @@ public class MainViewController {
         }
         gameViewModel.update(currentState, readyPlayers, playerId());
         readyButton.setText(readyPlayers.contains(playerId()) ? "Unready" : "Ready");
+        applyModeUI();
         syncView();
+        effects.maybeAnimateDraws(previousState, currentState, playerId());
         maybeHandleJsnPrompt();
         maybeHandleGameOver();
     }
 
+    /** Refreshes all visual sections from the current view model. */
     private void syncView() {
-        renderMyHand();
-        renderMyBank();
-        renderMyProperties();
-        renderOpponents();
-        renderPlayers();
-        updatePileButtons();
-        updateTurnAndDisable();
-        updateActionFormBySelectedCard();
-    }
-
-    private void updatePileButtons() {
-        if (drawPileButton == null || discardPileButton == null) {
-            return;
-        }
-        int draw = currentState == null ? 0 : currentState.drawPileCount();
-        int discard = currentState == null ? 0 : currentState.discardPileCount();
-        drawPileButton.setText("Draw Pile\n" + draw);
-        discardPileButton.setText("Discard Pile\n" + discard);
+        handController.render(gameViewModel, this::updateActionFormBySelectedCard);
+        boardCoordinator.renderBoard(currentState, playerId());
+        effects.updatePileButtons(currentState);
+        boardCoordinator.updateTurnAndDisable();
+        boardCoordinator.updateActionFormBySelectedCard(handController.selectedCard());
     }
 
     @FXML
     private void onShowDrawPile() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        gameDialogService.styleDialog(alert, gamePane);
-        int draw = currentState == null ? 0 : currentState.drawPileCount();
-        alert.setTitle("Draw Pile");
-        alert.setHeaderText("Draw pile info");
-        alert.setContentText("Remaining cards: " + draw + "\n\nThis pile is hidden by rules; card details are not shown.");
-        alert.showAndWait();
+        effects.showDrawPile(currentState);
     }
 
     @FXML
     private void onShowDiscardPile() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        gameDialogService.styleDialog(alert, gamePane);
-        int discard = currentState == null ? 0 : currentState.discardPileCount();
-        alert.setTitle("Discard Pile");
-        alert.setHeaderText("Discard pile info");
-        alert.setContentText("Current cards: " + discard + "\n\nDetailed discard list is not exposed in this assignment build.");
-        alert.showAndWait();
+        effects.showDiscardPile(currentState);
     }
 
-    private void playCardWithCenterAnimation(Supplier<GameResponse> action) {
-        Button source = selectedHandButton();
-        if (source == null || centerBoardPane == null || centerBoardPane.getScene() == null) {
-            renderResponse(action.get(), true);
-            return;
-        }
-        Bounds sourceScene = source.localToScene(source.getBoundsInLocal());
-        Bounds centerScene = centerBoardPane.localToScene(centerBoardPane.getBoundsInLocal());
-        if (sourceScene == null || centerScene == null) {
-            renderResponse(action.get(), true);
-            return;
-        }
-
-        ImageView flying = selectedCard == null ? null : CardImageRegistry.buildCardImageView(selectedCard);
-        if (flying == null) {
-            renderResponse(action.get(), true);
-            return;
-        }
-        flying.setManaged(false);
-        flying.setMouseTransparent(true);
-        flying.setFitWidth(source.getWidth() - 10);
-        flying.setFitHeight(source.getHeight() - 10);
-
-        double startX = sourceScene.getMinX() - centerScene.getMinX();
-        double startY = sourceScene.getMinY() - centerScene.getMinY();
-        flying.setTranslateX(startX);
-        flying.setTranslateY(startY);
-        centerBoardPane.getChildren().add(flying);
-
-        double targetX = (centerBoardPane.getWidth() - sourceScene.getWidth()) / 2.0;
-        double targetY = (centerBoardPane.getHeight() - sourceScene.getHeight()) / 2.0;
-
-        TranslateTransition move = new TranslateTransition(Duration.millis(260), flying);
-        move.setToX(targetX);
-        move.setToY(targetY);
-        FadeTransition fade = new FadeTransition(Duration.millis(260), flying);
-        fade.setFromValue(1.0);
-        fade.setToValue(0.0);
-        ParallelTransition animation = new ParallelTransition(move, fade);
-        animation.setOnFinished(event -> {
-            centerBoardPane.getChildren().remove(flying);
-            renderResponse(action.get(), true);
-        });
-        animation.play();
-    }
-
-    private Button selectedHandButton() {
-        if (selectedHandIndex < 0 || selectedHandIndex >= myHandPane.getChildren().size()) {
-            return null;
-        }
-        var node = myHandPane.getChildren().get(selectedHandIndex);
-        return node instanceof Button button ? button : null;
-    }
-
-    private void renderMyHand() {
-        myHandPane.getChildren().clear();
-        PlayerState me = gameViewModel.findMe();
-        if (me == null) {
-            selectedHandIndex = -1;
-            selectedCard = null;
-            selectedCardLabel.setText("Selected card: none");
-            return;
-        }
-        if (selectedHandIndex >= me.hand().size()) {
-            selectedHandIndex = -1;
-            selectedCard = null;
-            selectedCardLabel.setText("Selected card: none");
-        }
-        for (int i = 0; i < me.hand().size(); i++) {
-            Card card = me.hand().get(i);
-            Button button = new Button();
-            button.setPrefSize(170, 240);
-            button.setMinSize(170, 240);
-            button.setMaxSize(170, 240);
-            button.setStyle(gameBoardView.handImageStyle(i == selectedHandIndex));
-            ImageView imageView = CardImageRegistry.buildCardImageView(card);
-            if (imageView != null) {
-                button.setGraphic(imageView);
-            }
-            final int idx = i;
-            button.setOnAction(event -> {
-                selectedHandIndex = idx;
-                selectedCard = card;
-                selectedCardLabel.setText("Selected card: #" + idx + " " + card.name());
-                renderMyHand();
-                updateActionFormBySelectedCard();
-            });
-            myHandPane.getChildren().add(button);
-        }
-    }
-
-    private void renderMyBank() {
-        gameBoardView.renderMyBank(myBankPane, gameViewModel.findMe());
-    }
-
-    private void renderMyProperties() {
-        gameBoardView.renderMyProperties(
-                myPropertyBox,
-                gameViewModel.findMe(),
-                color -> gameViewModel.requiredSetSize(color),
-                this::showMyPropertyGroupDialog);
-    }
-
-    private void renderOpponents() {
-        gameBoardView.renderOpponents(
-                opponentsPane,
-                currentState == null ? List.of() : currentState.players(),
-                playerId(),
-                id -> preferredTargetId = id,
-                this::showPlayerDetailsDialog);
-    }
-
-    private void showMyPropertyGroupDialog(String color, List<Card> cards, int house, int hotel) {
-        String detail = gameViewModel.propertyGroupDetail(color, cards, house, hotel);
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        gameDialogService.styleDialog(alert, gamePane);
-        alert.setTitle("Property Details");
-        alert.setHeaderText("My Property Group");
-        alert.setContentText(detail);
-        alert.showAndWait();
-    }
-
-    private void showPlayerDetailsDialog(PlayerState p) {
-        String detail = gameViewModel.playerDetail(p);
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        gameDialogService.styleDialog(alert, gamePane);
-        alert.setTitle("Player Asset Details");
-        alert.setHeaderText("View " + p.player().displayName());
-        alert.setContentText(detail);
-        alert.showAndWait();
-    }
-
-    private void renderPlayers() {
-        playersTextArea.setText(gameViewModel.playersSummaryText());
-    }
-
-
-    private void updateTurnAndDisable() {
-        boolean isMyTurn = gameViewModel.isMyTurn();
-        turnLabel.setText(gameViewModel.turnText());
-        updateActionDisabled(!isMyTurn);
+    /** Animates a played card from the hand area to the center board. */
+    private void playCardWithCenterAnimation(Supplier<GameResponse> action, boolean playSoundOnSuccess) {
+        effects.playCardWithCenterAnimation(
+                handController.selectedHandButton(),
+                handController.selectedCard(),
+                action,
+                response -> renderResponse(response, true),
+                playSoundOnSuccess);
     }
 
     private void updateActionDisabled(boolean disabled) {
-        endTurnButton.setDisable(disabled);
-        playMoneyButton.setDisable(disabled);
-        playPropertyButton.setDisable(disabled);
-        playRentButton.setDisable(disabled);
-        playActionButton.setDisable(disabled);
+        if (boardCoordinator == null) {
+            return;
+        }
+        if (disabled) {
+            endTurnButton.setDisable(true);
+            playMoneyButton.setDisable(true);
+            playPropertyButton.setDisable(true);
+            changePropertyColorButton.setDisable(true);
+            playRentButton.setDisable(true);
+            playActionButton.setDisable(true);
+            return;
+        }
+        boardCoordinator.updateTurnAndDisable();
     }
 
     private void updateActionFormBySelectedCard() {
-        String name = selectedCard == null ? "" : selectedCard.name();
-        boolean isRent = selectedCard != null && "RENT".equals(String.valueOf(selectedCard.type()));
-        boolean isAction = selectedCard != null && "ACTION".equals(String.valueOf(selectedCard.type()));
-        boolean canPlayAsMoney = selectedCard != null
-                && (selectedCard.type() == CardType.MONEY
-                || selectedCard.type() == CardType.ACTION
-                || selectedCard.type() == CardType.RENT)
-                && selectedCard.bankValue() > 0;
-        boolean actionForbiddenActivePlay = "Just Say No".equals(name) || "Double The Rent".equals(name);
+        if (boardCoordinator != null) {
+            boardCoordinator.updateActionFormBySelectedCard(handController.selectedCard());
+        }
+    }
 
-        playRentButton.setDisable(!gameViewModel.isMyTurn() || !isRent);
-        playActionButton.setDisable(!gameViewModel.isMyTurn() || !isAction || actionForbiddenActivePlay);
-        playPropertyButton.setDisable(!gameViewModel.isMyTurn() || selectedCard == null
-                || !("PROPERTY".equals(String.valueOf(selectedCard.type()))
-                || "MULTI_PROPERTY".equals(String.valueOf(selectedCard.type()))));
-        playMoneyButton.setDisable(!gameViewModel.isMyTurn() || !canPlayAsMoney);
+    private String buildRecolorOptionText(String currentColor, Card card) {
+        if (card == null) {
+            return currentColor;
+        }
+        if ("Wild".equalsIgnoreCase(card.color())) {
+            return currentColor + " -> any other color";
+        }
+        List<String> targets = CardPropertyRules.allowedPropertyColors(card).stream()
+                .filter(color -> !color.equals(currentColor))
+                .toList();
+        if (targets.isEmpty()) {
+            return currentColor;
+        }
+        return currentColor + " -> " + String.join(" / ", targets);
+    }
+
+    private record RecolorCandidate(String fromColor, int propertyIndex, Card card) {
     }
 
     private boolean allHumanReady() {
@@ -743,17 +747,7 @@ public class MainViewController {
     }
 
     private String chooseTargetPlayerId() {
-        String target = gameDialogService.chooseTargetPlayerId(
-                currentState == null ? List.of() : currentState.players(),
-                playerId(),
-                preferredTargetId,
-                gamePane);
-        if (target == null) {
-            statusLabel.setText("No target player available");
-            return null;
-        }
-        preferredTargetId = target;
-        return target;
+        return boardCoordinator.chooseTargetPlayerId(currentState, playerId(), statusLabel);
     }
 
     private void maybeHandleGameOver() {
@@ -765,6 +759,7 @@ public class MainViewController {
         final boolean host = isHostPlayer();
         Platform.runLater(() -> {
             try {
+                audioFeedbackService.playVictory();
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 gameDialogService.styleDialog(alert, gamePane);
                 alert.setTitle("Game Over");
@@ -777,11 +772,13 @@ public class MainViewController {
             } catch (Exception exception) {
                 appendActionLog("Game-over handling failed: " + exception.getMessage());
             } finally {
+                clearLocalGameState();
                 onBackToMenu();
             }
         });
     }
 
+    /** Handles the local Just Say No prompt when the player is targeted. */
     private void maybeHandleJsnPrompt() {
         if (jsnPromptShowing || currentState == null) {
             return;
@@ -805,6 +802,7 @@ public class MainViewController {
                 boolean useCard = "Yes".equals(result);
                 GameResponse response = client.send("RESPOND_JSN", playerId(), Map.of("useCard", String.valueOf(useCard)));
                 renderResponse(response, true);
+                maybeRunBotTurn();
             } catch (Exception exception) {
                 appendActionLog("JSN response failed: " + exception.getMessage());
             } finally {
@@ -821,6 +819,8 @@ public class MainViewController {
         return hostId != null && hostId.equals(playerId());
     }
 
+
+
     private void appendActionLog(String line) {
         if (actionLogArea == null || line == null || line.isBlank()) {
             return;
@@ -831,6 +831,32 @@ public class MainViewController {
         }
         actionLogArea.setText(old + (old.isEmpty() ? "" : "\n") + line);
         actionLogArea.positionCaret(actionLogArea.getText().length());
+    }
+
+    private void restoreInitialMenuState() {
+        selectedMode = "single";
+        singleBotCount = 1;
+        currentPlayerId = "p1";
+        if (menuHostField != null) {
+            menuHostField.setText("127.0.0.1");
+        }
+        if (menuPortField != null) {
+            menuPortField.setText("18080");
+        }
+        if (menuPlayerIdField != null) {
+            menuPlayerIdField.setText("p1");
+        }
+        if (menuPlayerNameField != null) {
+            menuPlayerNameField.setText("Player1");
+        }
+        if (menuBotCheckBox != null) {
+            menuBotCheckBox.setSelected(false);
+        }
+        if (menuHostServerCheckBox != null) {
+            menuHostServerCheckBox.setSelected(false);
+        }
+        onBackToMenu();
+        applyModeUI();
     }
 
     private void putIfNotBlank(Map<String, String> payload, String key, String value) {
