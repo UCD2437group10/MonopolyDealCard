@@ -2,6 +2,7 @@ package edu.group10.monopolydeal.backend.game;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import edu.group10.monopolydeal.backend.model.card.Card;
@@ -46,14 +47,43 @@ class GameEngineStatePollingTest {
         assertEquals("", state.jsnResponderPlayerId());
     }
 
+    @Test
+    void botTurnCanFinishAfterHumanJustSayNoPromptTimesOut() throws Exception {
+        GameEngine engine = new GameEngine(new FixedDeckService());
+        engine.addPlayer(new Player("bot", "Bot", true));
+        engine.addPlayer(new Player("p2", "Player2", false));
+        engine.setReady("p2", true);
+        engine.startGame("bot");
+
+        PlayerState bot = engine.playerState("bot");
+        PlayerState p2 = engine.playerState("p2");
+        replaceHand(bot,
+                card("Debt Collector", CardType.ACTION, "-", 3),
+                card("Pass Go", CardType.ACTION, "-", 1),
+                card("1M Money", CardType.MONEY, "Money", 1));
+        replaceHand(p2, card("Just Say No", CardType.ACTION, "-", 4));
+        p2.addToBank(card("5M Money", CardType.MONEY, "Purple", 5));
+
+        engine.playBotTurn("bot");
+        assertEquals("p2", engine.snapshot().jsnResponderPlayerId());
+        assertEquals("bot", engine.snapshot().currentPlayerId());
+
+        expirePendingJsn(engine);
+        GameState stateAfterTimeout = engine.pollStateSnapshot();
+        assertNotNull(stateAfterTimeout);
+        assertEquals("", stateAfterTimeout.jsnResponderPlayerId());
+        assertEquals("bot", stateAfterTimeout.currentPlayerId());
+
+        assertDoesNotThrow(() -> engine.playBotTurn("bot"));
+        assertEquals("p2", engine.snapshot().currentPlayerId());
+        assertFalse(engine.snapshot().gameOver());
+    }
+
     private void expirePendingJsn(GameEngine engine) throws Exception {
         Field pendingJsnField = GameEngine.class.getDeclaredField("pendingJsn");
         pendingJsnField.setAccessible(true);
-        Object pending = pendingJsnField.get(engine);
-
-        Field waitingSinceMsField = pending.getClass().getDeclaredField("waitingSinceMs");
-        waitingSinceMsField.setAccessible(true);
-        waitingSinceMsField.setLong(pending, System.currentTimeMillis() - 20_000L);
+        PendingJsnState pending = (PendingJsnState) pendingJsnField.get(engine);
+        pending.setWaitingSinceMs(System.currentTimeMillis() - 20_000L);
     }
 
     private GameEngine createStartedEngine() {

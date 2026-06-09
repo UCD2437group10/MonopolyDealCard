@@ -5,6 +5,7 @@ import edu.group10.monopolydeal.backend.model.card.CardType;
 import edu.group10.monopolydeal.backend.model.player.PlayerState;
 import edu.group10.monopolydeal.backend.service.CardMoneyRules;
 import edu.group10.monopolydeal.backend.service.CardPropertyRules;
+import edu.group10.monopolydeal.backend.service.PropertySetRules;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +17,7 @@ final class BotTurnService {
     /** Plays a full bot turn using simple greedy heuristics. */
     void playTurn(GameEngine engine, String playerId) {
         int tries = 0;
-        int actionsPlayed = 0;
+        int actionsPlayed = engine.actionUsedCount();
         while (tries < 12) {
             if (actionsPlayed >= 3) {
                 break;
@@ -195,21 +196,6 @@ final class BotTurnService {
     }
 
     private boolean isCompleteSet(PlayerState playerState, String color) {
-        return playerState.propertyCount(color) >= requiredSetSize(color);
-    }
-
-    private int requiredSetSize(String color) {
-        return switch (baseColor(color)) {
-            case "Brown", "Deep Blue", "Utility" -> 2;
-            case "Railroad" -> 4;
-            default -> 3;
-        };
-    }
-
-    private String baseColor(String color) {
-        if (color == null) {
-            return "";
-        }
-        return color.replaceFirst(" \\(\\d+\\)$", "");
+        return PropertySetRules.isCompleteSet(color, playerState.propertyCount(color));
     }
 }

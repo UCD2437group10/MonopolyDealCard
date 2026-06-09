@@ -45,6 +45,40 @@ public class GameEngine {
     private final List<String> turnOrder = new ArrayList<>();
     /** Ready flags collected before the game starts. */
     private final Set<String> readyPlayerIds = new LinkedHashSet<>();
+    /** Handles draws and turn progression. */
+    private final TurnManager turnManager = new TurnManager(
+            players,
+            drawPile,
+            discardPile,
+            turnOrder,
+            EMPTY_HAND_BONUS_DRAW,
+            TURN_START_DRAW,
+            END_HAND_LIMIT
+    );
+    /** Checks completed sets and win conditions. */
+    private final VictoryManager victoryManager = new VictoryManager();
+    /** Resolves money and asset payments. */
+    private final PaymentResolver paymentResolver = new PaymentResolver(players);
+    /** Resolves property-stealing and swapping actions. */
+    private final PropertyActionResolver propertyActionResolver = new PropertyActionResolver(players, victoryManager);
+    /** Resolves rent amounts and Double The Rent handling. */
+    private final RentResolver rentResolver = new RentResolver(players, discardPile);
+    /** Owns the Just Say No chain state. */
+    private final JustSayNoResolver justSayNoResolver = new JustSayNoResolver(
+            players,
+            this::addToDiscardPileIfAction,
+            this::applyPendingEffectForTarget,
+            this::refreshWinner,
+            pending -> this.pendingJsn = pending,
+            JSN_TIMEOUT_MS
+    );
+    /** Dispatches action cards to dedicated rule handlers. */
+    private final ActionResolutionService actionResolutionService = new ActionResolutionService(
+            turnManager,
+            justSayNoResolver,
+            this::addHouse,
+            this::addHotel
+    );
 
     private boolean started;
     private boolean gameOver;
@@ -52,44 +86,10 @@ public class GameEngine {
     private String hostPlayerId = "";
     private int turnIndex;
     private int actionUsed;
-    private PendingJsn pendingJsn;
+    private PendingJsnState pendingJsn;
 
     /** Timeout used by the Just Say No response window. */
     private static final long JSN_TIMEOUT_MS = 10_000L;
-
-    /** Effect categories that can enter the Just Say No flow. */
-    private enum PendingEffectType {
-        DEBT_COLLECTOR,
-        SLY_DEAL,
-        FORCED_DEAL,
-        DEAL_BREAKER,
-        ITS_MY_BIRTHDAY
-    }
-
-    /** Tracks the current Just Say No interaction chain. */
-    private static final class PendingJsn {
-        private final String actorId;
-        private final String sourceAction;
-        private final PendingEffectType effectType;
-        private final Map<String, String> payload;
-        private final List<String> targets;
-        private int targetIndex;
-        private String waitingPlayerId;
-        private int currentTargetUseCount;
-        private long waitingSinceMs;
-
-        private PendingJsn(String actorId, String sourceAction, PendingEffectType effectType, Map<String, String> payload, List<String> targets) {
-            this.actorId = actorId;
-            this.sourceAction = sourceAction;
-            this.effectType = effectType;
-            this.payload = payload;
-            this.targets = targets;
-            this.targetIndex = 0;
-            this.waitingPlayerId = targets.isEmpty() ? "" : targets.get(0);
-            this.currentTargetUseCount = 0;
-            this.waitingSinceMs = System.currentTimeMillis();
-        }
-    }
 
     /** Creates a game engine backed by the given deck service. */
     public GameEngine(DeckService deckService) {
@@ -158,21 +158,14 @@ public class GameEngine {
         drawPile.clear();
         discardPile.clear();
         drawPile.addAll(deckService.createDeck());
-
-        for (String playerId : turnOrder) {
-            PlayerState playerState = playerState(playerId);
-            while (!playerState.hand().isEmpty()) {
-                playerState.removeHandCard(0);
-            }
-            drawCardsInternal(playerId, START_HAND_COUNT);
-        }
+        turnManager.dealOpeningHands(START_HAND_COUNT);
 
         started = true;
         gameOver = false;
         winnerPlayerId = "";
         turnIndex = 0;
         actionUsed = 0;
-        applyStartOfTurnDraw();
+        turnManager.applyStartOfTurnDraw(turnIndex);
     }
 
     /** Updates one player's ready status in the lobby. */
@@ -216,7 +209,7 @@ public class GameEngine {
 
     /** Changes the active color of a previously played multi-property card. */
     public void changePropertyColor(String playerId, String fromColor, int propertyIndex, String colorChoice) {
-        resolvePendingJsnTimeouts();
+        justSayNoResolver.resolveTimeouts();
         ensureTurnAlive(playerId);
         PlayerState state = playerState(playerId);
         List<Card> group = state.properties().get(fromColor);
@@ -232,7 +225,7 @@ public class GameEngine {
             throw new IllegalArgumentException("property is already in that color group");
         }
         if ((state.hasHouse(fromColor) || state.hasHotel(fromColor))
-                && state.propertyCount(fromColor) - 1 < requiredSetSize(fromColor)) {
+                && state.propertyCount(fromColor) - 1 < victoryManager.requiredSetSize(fromColor)) {
             throw new IllegalStateException("cannot move property out of a built complete set");
         }
         state.moveProperty(fromColor, propertyIndex, targetColor);
@@ -247,9 +240,9 @@ public class GameEngine {
             throw new IllegalArgumentException("card is not rent card");
         }
 
-        int rent = calculateRent(playerId, rentCard, colorChoice);
+        int rent = rentResolver.calculateRent(playerId, rentCard, colorChoice);
         if (doubleRentCount > 0) {
-            consumeDoubleRent(playerId, doubleRentCount);
+            rentResolver.consumeDoubleRent(playerId, doubleRentCount);
             rent = rent * (1 << doubleRentCount);
         }
 
@@ -259,13 +252,13 @@ public class GameEngine {
                 if (opponentId.equals(playerId)) {
                     continue;
                 }
-                transferPayment(opponentId, playerId, rent);
+                paymentResolver.transferPayment(opponentId, playerId, rent);
             }
         } else {
             if (playerId.equals(targetPlayerId)) {
                 throw new IllegalArgumentException("target player must be another player");
             }
-            transferPayment(targetPlayerId, playerId, rent);
+            paymentResolver.transferPayment(targetPlayerId, playerId, rent);
         }
 
         actionUsed++;
@@ -281,25 +274,10 @@ public class GameEngine {
         }
 
         try {
-            String targetId = payload.getOrDefault("targetPlayerId", "");
-            switch (actionCard.name()) {
-                case "Pass Go" -> drawCardsInternal(playerId, 2);
-                case "Debt Collector" -> startPendingJsn(playerId, actionCard.name(), PendingEffectType.DEBT_COLLECTOR, payload, List.of(targetId));
-                case "It's My Birthday" -> {
-                    List<String> targets = turnOrder.stream().filter(id -> !id.equals(playerId)).toList();
-                    startPendingJsn(playerId, actionCard.name(), PendingEffectType.ITS_MY_BIRTHDAY, payload, targets);
-                }
-                case "Sly Deal" -> startPendingJsn(playerId, actionCard.name(), PendingEffectType.SLY_DEAL, payload, List.of(targetId));
-                case "Forced Deal" -> startPendingJsn(playerId, actionCard.name(), PendingEffectType.FORCED_DEAL, payload, List.of(targetId));
-                case "Deal Breaker" -> startPendingJsn(playerId, actionCard.name(), PendingEffectType.DEAL_BREAKER, payload, List.of(targetId));
-                case "House" -> addHouse(playerId, payload.getOrDefault("color", ""));
-                case "Hotel" -> addHotel(playerId, payload.getOrDefault("color", ""));
-                case "Just Say No", "Double The Rent" -> throw new IllegalArgumentException(actionCard.name() + " can only be used reactively");
-                default -> throw new IllegalArgumentException("unsupported action card: " + actionCard.name());
-            }
+            actionResolutionService.resolve(playerId, actionCard, payload, turnOrder);
             addToDiscardPileIfAction(actionCard);
             actionUsed++;
-            resolvePendingJsnTimeouts();
+            justSayNoResolver.resolveTimeouts();
             if (pendingJsn == null) {
                 refreshWinner();
             }
@@ -311,26 +289,14 @@ public class GameEngine {
 
     /** Submits a Just Say No response for the current waiting player. */
     public void respondJustSayNo(String playerId, boolean useCard) {
-        resolvePendingJsnTimeouts();
-        if (pendingJsn == null) {
-            throw new IllegalStateException("no pending just-say-no prompt");
-        }
-        if (!playerId.equals(pendingJsn.waitingPlayerId)) {
-            throw new IllegalStateException("not current just-say-no responder");
-        }
-        advancePendingJsn(useCard);
-        resolvePendingJsnTimeouts();
+        justSayNoResolver.respond(playerId, useCard);
     }
 
     /** Ends the current turn after validating hand size. */
     public void endTurn(String playerId) {
         ensureTurnAlive(playerId);
-        if (playerState(playerId).hand().size() > END_HAND_LIMIT) {
-            throw new IllegalStateException("hand size must be <= 7 before end turn");
-        }
-        turnIndex = (turnIndex + 1) % turnOrder.size();
+        turnIndex = turnManager.advanceTurn(playerId, turnIndex);
         actionUsed = 0;
-        applyStartOfTurnDraw();
     }
 
     /** Builds a UI-friendly snapshot of the current engine state. */
@@ -341,10 +307,10 @@ public class GameEngine {
                 gameOver,
                 winnerPlayerId,
                 currentPlayer,
-                pendingJsn == null ? "" : pendingJsn.waitingPlayerId,
-                pendingJsn == null ? "" : pendingJsn.actorId,
-                pendingJsn == null || pendingJsn.targets.isEmpty() ? "" : pendingJsn.targets.get(pendingJsn.targetIndex),
-                pendingJsn == null ? "" : pendingJsn.sourceAction,
+                pendingJsn == null ? "" : pendingJsn.waitingPlayerId(),
+                pendingJsn == null ? "" : pendingJsn.actorId(),
+                pendingJsn == null || pendingJsn.targets().isEmpty() ? "" : pendingJsn.targets().get(pendingJsn.targetIndex()),
+                pendingJsn == null ? "" : pendingJsn.sourceAction(),
                 drawPile.size(),
                 discardPile.size(),
                 List.copyOf(discardPile),
@@ -358,7 +324,7 @@ public class GameEngine {
      * This keeps UI polling from crashing when a delayed effect can no longer be applied.
      */
     public GameState pollStateSnapshot() {
-        resolvePendingJsnTimeoutsSafely();
+        justSayNoResolver.resolveTimeoutsSafely();
         return snapshot();
     }
 
@@ -373,7 +339,7 @@ public class GameEngine {
     }
 
     private void ensureTurnAction(String playerId) {
-        resolvePendingJsnTimeouts();
+        justSayNoResolver.resolveTimeouts();
         if (pendingJsn != null) {
             throw new IllegalStateException("pending just-say-no response");
         }
@@ -399,230 +365,31 @@ public class GameEngine {
         return state.removeHandCard(handIndex);
     }
 
-    private void drawCardsInternal(String playerId, int count) {
-        for (int i = 0; i < count; i++) {
-            if (drawPile.isEmpty()) {
-                reshuffleIfNeeded();
-            }
-            if (drawPile.isEmpty()) {
-                throw new IllegalStateException("no cards left");
-            }
-            playerState(playerId).addToHand(drawPile.pop());
-        }
-        applyHandOverflow(playerId);
-    }
-
-    private void applyStartOfTurnDraw() {
-        if (turnOrder.isEmpty()) {
-            return;
-        }
-        String current = turnOrder.get(turnIndex);
-        int count = playerState(current).hand().isEmpty() ? EMPTY_HAND_BONUS_DRAW : TURN_START_DRAW;
-        drawCardsInternal(current, count);
-    }
-
-    private void applyHandOverflow(String playerId) {
-        PlayerState state = playerState(playerId);
-        while (state.hand().size() > END_HAND_LIMIT) {
-            state.removeHandCard(state.hand().size() - 1);
-        }
-    }
-
     private String resolvePropertyColor(Card card, String colorChoice) {
         return CardPropertyRules.resolvePropertyColor(card, colorChoice);
     }
 
-    private int calculateRent(String ownerId, Card rentCard, String colorChoice) {
-        String color = resolveRentColor(rentCard, colorChoice, ownerId);
-        int count = playerState(ownerId).propertyCount(color);
-        if (count == 0) {
-            throw new IllegalStateException("no property in chosen color");
-        }
-        int baseRent = baseRentByColorAndCount(color, count);
-        if (playerState(ownerId).hasHouse(color)) {
-            baseRent += 3;
-        }
-        if (playerState(ownerId).hasHotel(color)) {
-            baseRent += 4;
-        }
-        return baseRent;
-    }
-
-    private int baseRentByColorAndCount(String color, int count) {
-        return switch (color) {
-            case "Brown" -> count >= 2 ? 2 : 1;
-            case "Light Blue", "Pink", "Orange", "Red", "Yellow", "Green" -> {
-                if (count == 1) {
-                    yield 1;
-                }
-                if (count == 2) {
-                    yield 2;
-                }
-                yield 4;
-            }
-            case "Deep Blue" -> count >= 2 ? 4 : 2;
-            case "Railroad" -> Math.min(count, 4);
-            case "Utility" -> count >= 2 ? 2 : 1;
-            default -> throw new IllegalArgumentException("unsupported rent color: " + color);
-        };
-    }
-
-    private String resolveRentColor(Card rentCard, String colorChoice, String ownerId) {
-        if (rentCard.color().contains("/")) {
-            if (colorChoice == null || colorChoice.isBlank()) {
-                throw new IllegalArgumentException("rent card requires colorChoice");
-            }
-            String[] colors = rentCard.color().split("/");
-            for (String color : colors) {
-                if (color.equals(colorChoice)) {
-                    return colorChoice;
-                }
-            }
-            throw new IllegalArgumentException("invalid colorChoice");
-        }
-        if ("Any".equals(rentCard.color())) {
-            if (colorChoice == null || colorChoice.isBlank()) {
-                throw new IllegalArgumentException("wild rent requires colorChoice");
-            }
-            if (!playerState(ownerId).hasProperty(colorChoice)) {
-                throw new IllegalArgumentException("player has no such color property");
-            }
-            return colorChoice;
-        }
-        return rentCard.color();
-    }
-
-    private void consumeDoubleRent(String playerId, int count) {
-        PlayerState state = playerState(playerId);
-        for (int i = 0; i < count; i++) {
-            int index = findCardIndexByName(state.hand(), "Double The Rent");
-            if (index < 0) {
-                throw new IllegalStateException("not enough Double The Rent cards");
-            }
-            addToDiscardPileIfAction(state.removeHandCard(index));
-        }
-    }
-
-    private int findCardIndexByName(List<Card> cards, String cardName) {
-        for (int i = 0; i < cards.size(); i++) {
-            if (cardName.equals(cards.get(i).name())) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private void startPendingJsn(String actorId, String actionName, PendingEffectType effectType, Map<String, String> payload, List<String> targets) {
-        if (targets == null || targets.isEmpty()) {
-            applyPendingEffectForTarget(effectType, actorId, payload, "");
-            return;
-        }
-        pendingJsn = new PendingJsn(actorId, actionName, effectType, new LinkedHashMap<>(payload), List.copyOf(targets));
-        skipAutoPassResponders();
-    }
-
-    private void resolvePendingJsnTimeouts() {
-        while (pendingJsn != null && System.currentTimeMillis() - pendingJsn.waitingSinceMs >= JSN_TIMEOUT_MS) {
-            advancePendingJsn(false);
-        }
-    }
-
-    private void resolvePendingJsnTimeoutsSafely() {
-        while (pendingJsn != null && System.currentTimeMillis() - pendingJsn.waitingSinceMs >= JSN_TIMEOUT_MS) {
-            try {
-                advancePendingJsn(false);
-            } catch (RuntimeException exception) {
-                pendingJsn = null;
-                refreshWinner();
-                break;
-            }
-        }
-    }
-
-    private void advancePendingJsn(boolean useCard) {
-        if (pendingJsn == null) {
-            return;
-        }
-        String targetId = pendingJsn.targets.get(pendingJsn.targetIndex);
-        String responder = pendingJsn.waitingPlayerId;
-        if (useCard) {
-            removeJustSayNoCard(responder);
-            pendingJsn.currentTargetUseCount++;
-            pendingJsn.waitingPlayerId = responder.equals(targetId) ? pendingJsn.actorId : targetId;
-            pendingJsn.waitingSinceMs = System.currentTimeMillis();
-            skipAutoPassResponders();
-            return;
-        }
-
-        boolean canceled = pendingJsn.currentTargetUseCount % 2 == 1;
-        if (!canceled) {
-            applyPendingEffectForTarget(pendingJsn.effectType, pendingJsn.actorId, pendingJsn.payload, targetId);
-        }
-
-        pendingJsn.targetIndex++;
-        if (pendingJsn.targetIndex >= pendingJsn.targets.size()) {
-            pendingJsn = null;
-            refreshWinner();
-            return;
-        }
-        pendingJsn.currentTargetUseCount = 0;
-        pendingJsn.waitingPlayerId = pendingJsn.targets.get(pendingJsn.targetIndex);
-        pendingJsn.waitingSinceMs = System.currentTimeMillis();
-        skipAutoPassResponders();
-    }
-
-    private void skipAutoPassResponders() {
-        while (pendingJsn != null) {
-            String responderId = pendingJsn.waitingPlayerId;
-            if (!hasJustSayNoCard(responderId)) {
-                advancePendingJsn(false);
-                continue;
-            }
-            if (playerState(responderId).player().bot()) {
-                advancePendingJsn(true);
-                continue;
-            }
-            break;
-        }
-    }
-
-    private boolean hasJustSayNoCard(String playerId) {
-        if (playerId == null || playerId.isBlank() || !players.containsKey(playerId)) {
-            return false;
-        }
-        return findCardIndexByName(playerState(playerId).hand(), "Just Say No") >= 0;
-    }
-
     private void applyPendingEffectForTarget(PendingEffectType type, String actorId, Map<String, String> payload, String targetId) {
         switch (type) {
-            case DEBT_COLLECTOR -> transferPayment(targetId, actorId, 5);
+            case DEBT_COLLECTOR -> paymentResolver.transferPayment(targetId, actorId, 5);
             case SLY_DEAL -> {
                 String color = payload.getOrDefault("color", "");
                 int propertyIndex = Integer.parseInt(payload.getOrDefault("propertyIndex", "0"));
-                stealSingleProperty(actorId, targetId, color, propertyIndex);
+                propertyActionResolver.stealSingleProperty(actorId, targetId, color, propertyIndex);
             }
             case FORCED_DEAL -> {
                 String myColor = payload.getOrDefault("myColor", "");
                 String targetColor = payload.getOrDefault("targetColor", "");
                 int myIndex = Integer.parseInt(payload.getOrDefault("myIndex", "0"));
                 int targetIndex = Integer.parseInt(payload.getOrDefault("targetIndex", "0"));
-                forcedSwapProperty(actorId, targetId, myColor, myIndex, targetColor, targetIndex);
+                propertyActionResolver.forcedSwapProperty(actorId, targetId, myColor, myIndex, targetColor, targetIndex);
             }
             case DEAL_BREAKER -> {
                 String color = payload.getOrDefault("color", "");
-                stealCompleteSet(actorId, targetId, color);
+                propertyActionResolver.stealCompleteSet(actorId, targetId, color);
             }
-            case ITS_MY_BIRTHDAY -> transferPayment(targetId, actorId, 2);
+            case ITS_MY_BIRTHDAY -> paymentResolver.transferPayment(targetId, actorId, 2);
         }
-    }
-
-    private void removeJustSayNoCard(String playerId) {
-        PlayerState state = playerState(playerId);
-        int index = findCardIndexByName(state.hand(), "Just Say No");
-        if (index < 0) {
-            throw new IllegalStateException(playerId + " has no Just Say No");
-        }
-        addToDiscardPileIfAction(state.removeHandCard(index));
     }
 
     private void addToDiscardPileIfAction(Card card) {
@@ -632,84 +399,11 @@ public class GameEngine {
     }
 
     boolean hasPendingJsn() {
-        resolvePendingJsnTimeouts();
-        return pendingJsn != null;
+        return justSayNoResolver.hasPending();
     }
 
-    private void transferPayment(String fromId, String toId, int amount) {
-        if (amount <= 0) {
-            return;
-        }
-        PlayerState from = playerState(fromId);
-        PlayerState to = playerState(toId);
-
-        int remain = amount;
-        List<Card> paidBank = from.drainBankForPayment(remain);
-        for (Card card : paidBank) {
-            to.addToBank(card);
-            remain -= card.bankValue();
-        }
-
-        if (remain <= 0) {
-            return;
-        }
-
-        for (String color : new ArrayList<>(from.properties().keySet())) {
-            while (remain > 0 && from.propertyCount(color) > 0) {
-                Card property = from.removeProperty(color, from.propertyCount(color) - 1);
-                to.addProperty(color, property);
-                remain -= 1;
-            }
-            if (remain <= 0) {
-                break;
-            }
-        }
-    }
-
-    private void stealSingleProperty(String actorId, String targetId, String color, int propertyIndex) {
-        if (actorId.equals(targetId)) {
-            throw new IllegalArgumentException("target must be another player");
-        }
-        PlayerState target = playerState(targetId);
-        if (isCompleteSet(target, color)) {
-            throw new IllegalStateException("cannot steal from complete set");
-        }
-        Card card = target.removeProperty(color, propertyIndex);
-        playerState(actorId).addProperty(color, card);
-    }
-
-    private void forcedSwapProperty(String actorId, String targetId, String myColor, int myIndex, String targetColor, int targetIndex) {
-        if (actorId.equals(targetId)) {
-            throw new IllegalArgumentException("target must be another player");
-        }
-        if (isCompleteSet(playerState(actorId), myColor) || isCompleteSet(playerState(targetId), targetColor)) {
-            throw new IllegalStateException("forced deal cannot use complete-set property");
-        }
-        PlayerState actor = playerState(actorId);
-        PlayerState target = playerState(targetId);
-        Card mine = actor.removeProperty(myColor, myIndex);
-        Card targetCard = target.removeProperty(targetColor, targetIndex);
-        actor.addPropertyToExactGroup(targetColor, targetCard);
-        target.addPropertyToExactGroup(myColor, mine);
-    }
-
-    private void stealCompleteSet(String actorId, String targetId, String color) {
-        if (actorId.equals(targetId)) {
-            throw new IllegalArgumentException("target must be another player");
-        }
-        PlayerState target = playerState(targetId);
-        PlayerState actor = playerState(actorId);
-        if (!isCompleteSet(target, color)) {
-            throw new IllegalStateException("target color is not complete set");
-        }
-
-        actor.setAllProperties(color, target.removeAllProperties(color));
-        if (target.clearHouse(color) > 0) {
-            actor.addHouse(color);
-        }
-        if (target.clearHotel(color) > 0) {
-            actor.addHotel(color);
-        }
+    int actionUsedCount() {
+        return actionUsed;
     }
 
     private void addHouse(String playerId, String color) {
@@ -717,7 +411,7 @@ public class GameEngine {
         if ("Railroad".equals(color) || "Utility".equals(color)) {
             throw new IllegalArgumentException("house cannot be used on Railroad/Utility");
         }
-        if (!isCompleteSet(playerState, color)) {
+        if (!victoryManager.isCompleteSet(playerState, color)) {
             throw new IllegalStateException("house requires complete set");
         }
         playerState.addHouse(color);
@@ -731,7 +425,7 @@ public class GameEngine {
         if (!playerState.hasHouse(color)) {
             throw new IllegalStateException("hotel requires house first");
         }
-        if (!isCompleteSet(playerState, color)) {
+        if (!victoryManager.isCompleteSet(playerState, color)) {
             throw new IllegalStateException("hotel requires complete set");
         }
         if (playerState.hasHotel(color)) {
@@ -741,40 +435,14 @@ public class GameEngine {
     }
 
     private void refreshWinner() {
-        for (String playerId : turnOrder) {
-            PlayerState ps = playerState(playerId);
-            Set<String> completedBaseColors = new LinkedHashSet<>();
-            for (String color : ps.properties().keySet()) {
-                if (isCompleteSet(ps, color)) {
-                    completedBaseColors.add(baseColor(color));
-                }
-            }
-            if (completedBaseColors.size() >= 3) {
-                gameOver = true;
-                winnerPlayerId = playerId;
-                return;
-            }
+        String winner = victoryManager.findWinner(turnOrder, players);
+        if (winner.isBlank()) {
+            gameOver = false;
+            winnerPlayerId = "";
+            return;
         }
-    }
-
-    private boolean isCompleteSet(PlayerState playerState, String color) {
-        int need = requiredSetSize(color);
-        return playerState.propertyCount(color) >= need;
-    }
-
-    private int requiredSetSize(String color) {
-        return switch (baseColor(color)) {
-            case "Brown", "Deep Blue", "Utility" -> 2;
-            case "Railroad" -> 4;
-            default -> 3;
-        };
-    }
-
-    private String baseColor(String color) {
-        if (color == null) {
-            return "";
-        }
-        return color.replaceFirst(" \\(\\d+\\)$", "");
+        gameOver = true;
+        winnerPlayerId = winner;
     }
 
     PlayerState playerState(String playerId) {
@@ -798,15 +466,6 @@ public class GameEngine {
     private void ensureCurrentPlayer(String playerId) {
         if (!playerId.equals(turnOrder.get(turnIndex))) {
             throw new IllegalStateException("not current player's turn");
-        }
-    }
-
-    private void reshuffleIfNeeded() {
-        if (discardPile.isEmpty()) {
-            return;
-        }
-        while (!discardPile.isEmpty()) {
-            drawPile.push(discardPile.pop());
         }
     }
 }
