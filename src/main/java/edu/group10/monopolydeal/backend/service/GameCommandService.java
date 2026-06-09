@@ -91,6 +91,10 @@ public class GameCommandService {
                 gameEngine.respondJustSayNo(request.playerId(), useCard);
                 return ok("jsn response submitted");
             }
+            if ("SUBMIT_PAYMENT".equals(action)) {
+                gameEngine.submitPendingPayment(request.playerId(), edu.group10.monopolydeal.backend.game.PaymentSelection.fromPayload(payload));
+                return ok("payment submitted");
+            }
             if ("END_TURN".equals(action)) {
                 gameEngine.endTurn(request.playerId());
                 return ok("turn ended");
@@ -124,7 +128,7 @@ public class GameCommandService {
 
     /** Lists the commands supported by the current backend. */
     public List<String> supportedActions() {
-        return List.of("JOIN", "READY", "UNREADY", "START", "PLAY_MONEY", "PLAY_PROPERTY", "PLAY_RENT", "CHANGE_PROPERTY_COLOR", "PLAY_ACTION", "RESPOND_JSN", "END_TURN", "BOT_TURN", "STATE", "RESET");
+        return List.of("JOIN", "READY", "UNREADY", "START", "PLAY_MONEY", "PLAY_PROPERTY", "PLAY_RENT", "CHANGE_PROPERTY_COLOR", "PLAY_ACTION", "RESPOND_JSN", "SUBMIT_PAYMENT", "END_TURN", "BOT_TURN", "STATE", "RESET");
     }
 
     /** Returns a compact description of the payload required by one action. */
@@ -140,6 +144,7 @@ public class GameCommandService {
             case "CHANGE_PROPERTY_COLOR" -> Map.of("payload", "fromColor, propertyIndex, colorChoice", "description", "Change the color of an already played multi-property card");
             case "PLAY_ACTION" -> Map.of("payload", "handIndex plus action parameters", "description", "Play an action card");
             case "RESPOND_JSN" -> Map.of("payload", "useCard(true/false)", "description", "Respond to a Just Say No prompt");
+            case "SUBMIT_PAYMENT" -> Map.of("payload", "bankIndexes, propertyRefs", "description", "Submit selected assets for a pending payment");
             case "END_TURN" -> Map.of("payload", "none", "description", "End the turn when hand size is at most seven");
             case "BOT_TURN" -> Map.of("payload", "none", "description", "Let the current bot finish its turn");
             case "STATE" -> Map.of("payload", "none", "description", "Fetch the latest state snapshot");

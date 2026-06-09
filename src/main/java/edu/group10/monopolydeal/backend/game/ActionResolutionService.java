@@ -1,6 +1,7 @@
 package edu.group10.monopolydeal.backend.game;
 
 import edu.group10.monopolydeal.backend.model.card.Card;
+import edu.group10.monopolydeal.backend.model.player.PlayerState;
 import java.util.List;
 import java.util.Map;
 
@@ -8,27 +9,21 @@ import java.util.Map;
  * Dispatches action cards to their rule-specific resolvers.
  */
 final class ActionResolutionService {
-
-    @FunctionalInterface
-    interface BuildingAction {
-        void apply(String playerId, String color);
-    }
-
+    private final Map<String, PlayerState> players;
     private final TurnManager turnManager;
     private final JustSayNoResolver justSayNoResolver;
-    private final BuildingAction houseAction;
-    private final BuildingAction hotelAction;
+    private final VictoryManager victoryManager;
 
     ActionResolutionService(
+            Map<String, PlayerState> players,
             TurnManager turnManager,
             JustSayNoResolver justSayNoResolver,
-            BuildingAction houseAction,
-            BuildingAction hotelAction
+            VictoryManager victoryManager
     ) {
+        this.players = players;
         this.turnManager = turnManager;
         this.justSayNoResolver = justSayNoResolver;
-        this.houseAction = houseAction;
-        this.hotelAction = hotelAction;
+        this.victoryManager = victoryManager;
     }
 
     // Route each action card to the matching rule handler.
@@ -44,10 +39,46 @@ final class ActionResolutionService {
             case "Sly Deal" -> justSayNoResolver.startPendingJsn(playerId, actionCard.name(), PendingEffectType.SLY_DEAL, payload, List.of(targetId));
             case "Forced Deal" -> justSayNoResolver.startPendingJsn(playerId, actionCard.name(), PendingEffectType.FORCED_DEAL, payload, List.of(targetId));
             case "Deal Breaker" -> justSayNoResolver.startPendingJsn(playerId, actionCard.name(), PendingEffectType.DEAL_BREAKER, payload, List.of(targetId));
-            case "House" -> houseAction.apply(playerId, payload.getOrDefault("color", ""));
-            case "Hotel" -> hotelAction.apply(playerId, payload.getOrDefault("color", ""));
+            case "House" -> addHouse(playerId, payload.getOrDefault("color", ""));
+            case "Hotel" -> addHotel(playerId, payload.getOrDefault("color", ""));
             case "Just Say No", "Double The Rent" -> throw new IllegalArgumentException(actionCard.name() + " can only be used reactively");
             default -> throw new IllegalArgumentException("unsupported action card: " + actionCard.name());
         }
+    }
+
+    private void addHouse(String playerId, String color) {
+        PlayerState playerState = playerState(playerId);
+        if ("Railroad".equals(color) || "Utility".equals(color)) {
+            throw new IllegalArgumentException("house cannot be used on Railroad/Utility");
+        }
+        if (!victoryManager.isCompleteSet(playerState, color)) {
+            throw new IllegalStateException("house requires complete set");
+        }
+        playerState.addHouse(color);
+    }
+
+    private void addHotel(String playerId, String color) {
+        PlayerState playerState = playerState(playerId);
+        if ("Railroad".equals(color) || "Utility".equals(color)) {
+            throw new IllegalArgumentException("hotel cannot be used on Railroad/Utility");
+        }
+        if (!playerState.hasHouse(color)) {
+            throw new IllegalStateException("hotel requires house first");
+        }
+        if (!victoryManager.isCompleteSet(playerState, color)) {
+            throw new IllegalStateException("hotel requires complete set");
+        }
+        if (playerState.hasHotel(color)) {
+            throw new IllegalStateException("hotel already exists on this set");
+        }
+        playerState.addHotel(color);
+    }
+
+    private PlayerState playerState(String playerId) {
+        PlayerState state = players.get(playerId);
+        if (state == null) {
+            throw new IllegalArgumentException("unknown player: " + playerId);
+        }
+        return state;
     }
 }

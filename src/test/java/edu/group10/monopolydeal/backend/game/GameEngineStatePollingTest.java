@@ -13,6 +13,7 @@ import edu.group10.monopolydeal.backend.model.player.PlayerState;
 import edu.group10.monopolydeal.backend.service.DeckService;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -73,6 +74,10 @@ class GameEngineStatePollingTest {
         assertNotNull(stateAfterTimeout);
         assertEquals("", stateAfterTimeout.jsnResponderPlayerId());
         assertEquals("bot", stateAfterTimeout.currentPlayerId());
+        assertEquals("p2", stateAfterTimeout.pendingPaymentPayerPlayerId());
+
+        Map<String, List<Integer>> properties = new LinkedHashMap<>();
+        engine.submitPendingPayment("p2", new PaymentSelection(List.of(0), properties));
 
         assertDoesNotThrow(() -> engine.playBotTurn("bot"));
         assertEquals("p2", engine.snapshot().currentPlayerId());

@@ -73,6 +73,13 @@ public class PlayerState {
         bank.add(card);
     }
 
+    public Card drainBankCard(int index) {
+        if (index < 0 || index >= bank.size()) {
+            throw new IllegalArgumentException("invalid bank index");
+        }
+        return bank.remove(index);
+    }
+
     /** Computes the total value of the bank area. */
     public int bankTotal() {
         int total = 0;
@@ -107,7 +114,10 @@ public class PlayerState {
             properties.remove(color);
             houseByColor.remove(color);
             hotelByColor.remove(color);
+        } else {
+            cleanupBuildingsForIncompleteGroup(color, group.size());
         }
+        rebalancePropertyGroups(PropertySetRules.baseColor(color));
         return card;
     }
 
@@ -116,6 +126,9 @@ public class PlayerState {
         if (group == null) {
             return List.of();
         }
+        houseByColor.remove(color);
+        hotelByColor.remove(color);
+        rebalancePropertyGroups(PropertySetRules.baseColor(color));
         return new ArrayList<>(group);
     }
 
@@ -202,5 +215,105 @@ public class PlayerState {
             return Integer.parseInt(matcher.group(1));
         }
         return 1;
+    }
+
+    private void cleanupBuildingsForIncompleteGroup(String color, int remainingCount) {
+        String baseColor = PropertySetRules.baseColor(color);
+        if (!PropertySetRules.isCompleteSet(baseColor, remainingCount)) {
+            houseByColor.remove(color);
+            hotelByColor.remove(color);
+        }
+    }
+
+    private void rebalancePropertyGroups(String baseColor) {
+        if (baseColor == null || baseColor.isBlank()) {
+            return;
+        }
+        List<String> matchingGroups = new ArrayList<>();
+        for (String key : properties.keySet()) {
+            if (PropertySetRules.baseColor(key).equals(baseColor)) {
+                matchingGroups.add(key);
+            }
+        }
+        if (matchingGroups.size() <= 1) {
+            return;
+        }
+
+        int requiredSize = PropertySetRules.requiredSetSize(baseColor);
+        for (int i = 0; i < matchingGroups.size(); i++) {
+            String targetGroup = matchingGroups.get(i);
+            List<Card> targetCards = properties.get(targetGroup);
+            if (targetCards == null) {
+                continue;
+            }
+            while (targetCards.size() < requiredSize) {
+                String sourceGroup = findRebalanceSourceGroup(matchingGroups, i, requiredSize);
+                if (sourceGroup == null) {
+                    break;
+                }
+                List<Card> sourceCards = properties.get(sourceGroup);
+                targetCards.add(sourceCards.remove(sourceCards.size() - 1));
+                if (sourceCards.isEmpty()) {
+                    properties.remove(sourceGroup);
+                    houseByColor.remove(sourceGroup);
+                    hotelByColor.remove(sourceGroup);
+                }
+            }
+            cleanupBuildingsForIncompleteGroup(targetGroup, targetCards.size());
+        }
+
+        relabelPropertyGroups(baseColor);
+    }
+
+    private String findRebalanceSourceGroup(List<String> matchingGroups, int targetIndex, int requiredSize) {
+        for (int i = targetIndex + 1; i < matchingGroups.size(); i++) {
+            String color = matchingGroups.get(i);
+            List<Card> cards = properties.get(color);
+            if (cards == null || cards.isEmpty()) {
+                continue;
+            }
+            int minimumRemaining = hasHouse(color) || hasHotel(color) ? requiredSize : 0;
+            if (cards.size() - 1 >= minimumRemaining) {
+                return color;
+            }
+        }
+        return null;
+    }
+
+    private void relabelPropertyGroups(String baseColor) {
+        List<GroupSnapshot> groups = new ArrayList<>();
+        for (String key : new ArrayList<>(properties.keySet())) {
+            if (!PropertySetRules.baseColor(key).equals(baseColor)) {
+                continue;
+            }
+            List<Card> cards = properties.remove(key);
+            if (cards == null || cards.isEmpty()) {
+                houseByColor.remove(key);
+                hotelByColor.remove(key);
+                continue;
+            }
+            groups.add(new GroupSnapshot(
+                    cards,
+                    houseByColor.getOrDefault(key, 0),
+                    hotelByColor.getOrDefault(key, 0)
+            ));
+            houseByColor.remove(key);
+            hotelByColor.remove(key);
+        }
+
+        for (int i = 0; i < groups.size(); i++) {
+            String label = i == 0 ? baseColor : baseColor + " (" + (i + 1) + ")";
+            GroupSnapshot snapshot = groups.get(i);
+            properties.put(label, snapshot.cards());
+            if (snapshot.houseCount() > 0) {
+                houseByColor.put(label, snapshot.houseCount());
+            }
+            if (snapshot.hotelCount() > 0) {
+                hotelByColor.put(label, snapshot.hotelCount());
+            }
+        }
+    }
+
+    private record GroupSnapshot(List<Card> cards, int houseCount, int hotelCount) {
     }
 }

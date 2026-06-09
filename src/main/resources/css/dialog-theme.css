@@ -57,3 +57,48 @@
     -fx-background-color: #3b2b16;
     -fx-text-fill: #f4e1a0;
 }
+
+.md-dialog .payment-dialog-content {
+    -fx-background-color: rgba(212, 175, 55, 0.05);
+    -fx-border-color: #6e5a1f;
+    -fx-border-width: 1;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 12;
+}
+
+.md-dialog .payment-total-label {
+    -fx-text-fill: #f0d57a;
+    -fx-font-weight: bold;
+}
+
+.md-dialog .payment-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: #7a6320;
+    -fx-border-width: 1;
+    -fx-fit-to-width: true;
+}
+
+.md-dialog .payment-scroll-pane > .viewport {
+    -fx-background-color: #20170f;
+}
+
+.md-dialog .payment-option-box {
+    -fx-background-color: #20170f;
+    -fx-padding: 10;
+}
+
+.md-dialog .payment-check-box {
+    -fx-text-fill: #dfc680;
+}
+
+.md-dialog .payment-check-box .box {
+    -fx-background-color: #2a1f14;
+    -fx-border-color: #a88933;
+    -fx-border-width: 1;
+}
+
+.md-dialog .payment-check-box:selected .mark {
+    -fx-background-color: #f0d57a;
+}

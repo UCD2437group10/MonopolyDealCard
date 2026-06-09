@@ -23,7 +23,7 @@ final class BotTurnService {
                 break;
             }
             if (tryPlayMoney(engine, playerId)) {
-                if (engine.hasPendingJsn()) {
+                if (engine.hasPendingJsn() || engine.hasPendingPayment()) {
                     return;
                 }
                 tries++;
@@ -31,7 +31,7 @@ final class BotTurnService {
                 continue;
             }
             if (tryPlayProperty(engine, playerId)) {
-                if (engine.hasPendingJsn()) {
+                if (engine.hasPendingJsn() || engine.hasPendingPayment()) {
                     return;
                 }
                 tries++;
@@ -39,7 +39,7 @@ final class BotTurnService {
                 continue;
             }
             if (engine.playerState(playerId).bankTotal() == 0 && tryPlayCheapestActionAsMoney(engine, playerId)) {
-                if (engine.hasPendingJsn()) {
+                if (engine.hasPendingJsn() || engine.hasPendingPayment()) {
                     return;
                 }
                 tries++;
@@ -47,7 +47,7 @@ final class BotTurnService {
                 continue;
             }
             if (tryPlayAction(engine, playerId)) {
-                if (engine.hasPendingJsn()) {
+                if (engine.hasPendingJsn() || engine.hasPendingPayment()) {
                     return;
                 }
                 tries++;
@@ -56,7 +56,7 @@ final class BotTurnService {
             }
             break;
         }
-        if (engine.hasPendingJsn()) {
+        if (engine.hasPendingJsn() || engine.hasPendingPayment()) {
             return;
         }
         engine.endTurn(playerId);
@@ -85,7 +85,7 @@ final class BotTurnService {
                 return true;
             }
             if (card.type() == CardType.MULTI_PROPERTY) {
-                engine.playPropertyCard(playerId, i, chooseColorForMultiProperty(engine, playerId, card));
+                engine.playPropertyCard(playerId, i, chooseColorForMultiProperty(card));
                 return true;
             }
         }
@@ -129,7 +129,7 @@ final class BotTurnService {
         return false;
     }
 
-    private String chooseColorForMultiProperty(GameEngine engine, String playerId, Card card) {
+    private String chooseColorForMultiProperty(Card card) {
         List<String> options = CardPropertyRules.allowedPropertyColors(card);
         if (options.isEmpty()) {
             return card.color();

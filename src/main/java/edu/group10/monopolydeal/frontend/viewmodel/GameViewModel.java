@@ -109,7 +109,7 @@ public class GameViewModel {
                 + "\nHouse: " + house
                 + "\nHotel: " + hotel
                 + "\n\nCards:\n- "
-                + cards.stream().map(Card::name).collect(Collectors.joining("\n- "));
+                + cards.stream().map(card -> card.name() + " ($" + card.bankValue() + ")").collect(Collectors.joining("\n- "));
     }
 
     public String playerDetail(PlayerState p) {
@@ -124,7 +124,9 @@ public class GameViewModel {
                     int progress = Math.min(cards.size(), need);
                     int house = p.houseByColor().getOrDefault(color, 0);
                     int hotel = p.hotelByColor().getOrDefault(color, 0);
-                    String names = cards.stream().map(Card::name).collect(Collectors.joining(", "));
+                    String names = cards.stream()
+                            .map(card -> card.name() + "($" + card.bankValue() + ")")
+                            .collect(Collectors.joining(", "));
                     return color + " progress " + progress + "/" + need + "  H:" + house + " T:" + hotel + "\n  - " + names;
                 })
                 .collect(Collectors.joining("\n"));

@@ -59,6 +59,13 @@ public class GameEngine {
     private final VictoryManager victoryManager = new VictoryManager();
     /** Resolves money and asset payments. */
     private final PaymentResolver paymentResolver = new PaymentResolver(players);
+    /** Sequences manual human payments and automatic bot payments. */
+    private final PaymentRequestResolver paymentRequestResolver = new PaymentRequestResolver(
+            players,
+            paymentResolver,
+            this::refreshWinner,
+            pending -> this.pendingPayment = pending
+    );
     /** Resolves property-stealing and swapping actions. */
     private final PropertyActionResolver propertyActionResolver = new PropertyActionResolver(players, victoryManager);
     /** Resolves rent amounts and Double The Rent handling. */
@@ -74,10 +81,10 @@ public class GameEngine {
     );
     /** Dispatches action cards to dedicated rule handlers. */
     private final ActionResolutionService actionResolutionService = new ActionResolutionService(
+            players,
             turnManager,
             justSayNoResolver,
-            this::addHouse,
-            this::addHotel
+            victoryManager
     );
 
     private boolean started;
@@ -87,6 +94,7 @@ public class GameEngine {
     private int turnIndex;
     private int actionUsed;
     private PendingJsnState pendingJsn;
+    private PendingPaymentState pendingPayment;
 
     /** Timeout used by the Just Say No response window. */
     private static final long JSN_TIMEOUT_MS = 10_000L;
@@ -132,6 +140,7 @@ public class GameEngine {
         turnIndex = 0;
         actionUsed = 0;
         pendingJsn = null;
+        pendingPayment = null;
     }
 
     /** Starts a new match after lobby validation succeeds. */
@@ -248,21 +257,25 @@ public class GameEngine {
 
         // Two-color rent cards affect every opponent, while wild rent stays single-target.
         if (rentCard.color() != null && rentCard.color().contains("/")) {
+            List<String> opponents = new ArrayList<>();
             for (String opponentId : turnOrder) {
                 if (opponentId.equals(playerId)) {
                     continue;
                 }
-                paymentResolver.transferPayment(opponentId, playerId, rent);
+                opponents.add(opponentId);
             }
+            paymentRequestResolver.requestPayments(playerId, rent, rentCard.name(), opponents);
         } else {
             if (playerId.equals(targetPlayerId)) {
                 throw new IllegalArgumentException("target player must be another player");
             }
-            paymentResolver.transferPayment(targetPlayerId, playerId, rent);
+            paymentRequestResolver.requestPayments(playerId, rent, rentCard.name(), List.of(targetPlayerId));
         }
 
         actionUsed++;
-        refreshWinner();
+        if (!paymentRequestResolver.hasPending()) {
+            refreshWinner();
+        }
     }
 
     /** Plays an action card and applies its rule-specific effect. */
@@ -278,7 +291,7 @@ public class GameEngine {
             addToDiscardPileIfAction(actionCard);
             actionUsed++;
             justSayNoResolver.resolveTimeouts();
-            if (pendingJsn == null) {
+            if (pendingJsn == null && pendingPayment == null) {
                 refreshWinner();
             }
         } catch (RuntimeException exception) {
@@ -292,8 +305,14 @@ public class GameEngine {
         justSayNoResolver.respond(playerId, useCard);
     }
 
+    /** Submits the selected assets for a pending manual payment. */
+    public void submitPendingPayment(String playerId, PaymentSelection selection) {
+        paymentRequestResolver.submitSelection(playerId, selection);
+    }
+
     /** Ends the current turn after validating hand size. */
     public void endTurn(String playerId) {
+        ensureNoPendingInterruptions();
         ensureTurnAlive(playerId);
         turnIndex = turnManager.advanceTurn(playerId, turnIndex);
         actionUsed = 0;
@@ -307,6 +326,10 @@ public class GameEngine {
                 gameOver,
                 winnerPlayerId,
                 currentPlayer,
+                pendingPayment == null ? "" : pendingPayment.waitingPlayerId(),
+                pendingPayment == null ? "" : pendingPayment.collectorPlayerId(),
+                pendingPayment == null ? 0 : pendingPayment.amount(),
+                pendingPayment == null ? "" : pendingPayment.sourceAction(),
                 pendingJsn == null ? "" : pendingJsn.waitingPlayerId(),
                 pendingJsn == null ? "" : pendingJsn.actorId(),
                 pendingJsn == null || pendingJsn.targets().isEmpty() ? "" : pendingJsn.targets().get(pendingJsn.targetIndex()),
@@ -340,9 +363,7 @@ public class GameEngine {
 
     private void ensureTurnAction(String playerId) {
         justSayNoResolver.resolveTimeouts();
-        if (pendingJsn != null) {
-            throw new IllegalStateException("pending just-say-no response");
-        }
+        ensureNoPendingInterruptions();
         ensureTurnAlive(playerId);
         if (actionUsed >= MAX_ACTION_PER_TURN) {
             throw new IllegalStateException("max 3 actions per turn");
@@ -371,7 +392,7 @@ public class GameEngine {
 
     private void applyPendingEffectForTarget(PendingEffectType type, String actorId, Map<String, String> payload, String targetId) {
         switch (type) {
-            case DEBT_COLLECTOR -> paymentResolver.transferPayment(targetId, actorId, 5);
+            case DEBT_COLLECTOR -> paymentRequestResolver.requestPayments(actorId, 5, "Debt Collector", List.of(targetId));
             case SLY_DEAL -> {
                 String color = payload.getOrDefault("color", "");
                 int propertyIndex = Integer.parseInt(payload.getOrDefault("propertyIndex", "0"));
@@ -388,7 +409,7 @@ public class GameEngine {
                 String color = payload.getOrDefault("color", "");
                 propertyActionResolver.stealCompleteSet(actorId, targetId, color);
             }
-            case ITS_MY_BIRTHDAY -> paymentResolver.transferPayment(targetId, actorId, 2);
+            case ITS_MY_BIRTHDAY -> paymentRequestResolver.requestPayments(actorId, 2, "It's My Birthday", List.of(targetId));
         }
     }
 
@@ -402,36 +423,12 @@ public class GameEngine {
         return justSayNoResolver.hasPending();
     }
 
+    boolean hasPendingPayment() {
+        return paymentRequestResolver.hasPending();
+    }
+
     int actionUsedCount() {
         return actionUsed;
-    }
-
-    private void addHouse(String playerId, String color) {
-        PlayerState playerState = playerState(playerId);
-        if ("Railroad".equals(color) || "Utility".equals(color)) {
-            throw new IllegalArgumentException("house cannot be used on Railroad/Utility");
-        }
-        if (!victoryManager.isCompleteSet(playerState, color)) {
-            throw new IllegalStateException("house requires complete set");
-        }
-        playerState.addHouse(color);
-    }
-
-    private void addHotel(String playerId, String color) {
-        PlayerState playerState = playerState(playerId);
-        if ("Railroad".equals(color) || "Utility".equals(color)) {
-            throw new IllegalArgumentException("hotel cannot be used on Railroad/Utility");
-        }
-        if (!playerState.hasHouse(color)) {
-            throw new IllegalStateException("hotel requires house first");
-        }
-        if (!victoryManager.isCompleteSet(playerState, color)) {
-            throw new IllegalStateException("hotel requires complete set");
-        }
-        if (playerState.hasHotel(color)) {
-            throw new IllegalStateException("hotel already exists on this set");
-        }
-        playerState.addHotel(color);
     }
 
     private void refreshWinner() {
@@ -466,6 +463,15 @@ public class GameEngine {
     private void ensureCurrentPlayer(String playerId) {
         if (!playerId.equals(turnOrder.get(turnIndex))) {
             throw new IllegalStateException("not current player's turn");
+        }
+    }
+
+    private void ensureNoPendingInterruptions() {
+        if (pendingJsn != null) {
+            throw new IllegalStateException("pending just-say-no response");
+        }
+        if (pendingPayment != null) {
+            throw new IllegalStateException("pending payment selection");
         }
     }
 }

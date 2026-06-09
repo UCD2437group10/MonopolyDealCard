@@ -9,20 +9,15 @@ import edu.group10.monopolydeal.backend.service.CardPropertyRules;
 import edu.group10.monopolydeal.frontend.network.client.GameClient;
 import edu.group10.monopolydeal.frontend.view.AudioFeedbackService;
 import edu.group10.monopolydeal.frontend.view.GameDialogService;
+import edu.group10.monopolydeal.frontend.view.PaymentSelectionDialog;
 import edu.group10.monopolydeal.frontend.viewmodel.GameViewModel;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.application.Platform;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 
 /**
  * Handles in-game actions and game-driven interaction flows.
@@ -34,6 +29,7 @@ final class MainViewGameController {
     private final MainViewBoardCoordinator boardCoordinator;
     private final MainViewEffects effects;
     private final GameDialogService gameDialogService;
+    private final PaymentSelectionDialog paymentSelectionDialog;
     private final AudioFeedbackService audioFeedbackService;
     private final ActionPayloadBuilder actionPayloadBuilder;
     private final GameViewModel gameViewModel;
@@ -47,13 +43,12 @@ final class MainViewGameController {
     private final Runnable restoreInitialMenuState;
     private final Runnable backToMenu;
     private final Runnable botTurnRunner;
-
-    private boolean gameOverHandled;
-    private boolean jsnPromptShowing;
+    private final MainViewInteractionCoordinator interactionCoordinator;
 
     MainViewGameController(GameClient client, MainViewUiSynchronizer uiSynchronizer,
                            MainViewHandController handController, MainViewBoardCoordinator boardCoordinator,
                            MainViewEffects effects, GameDialogService gameDialogService,
+                           PaymentSelectionDialog paymentSelectionDialog,
                            AudioFeedbackService audioFeedbackService, ActionPayloadBuilder actionPayloadBuilder,
                            GameViewModel gameViewModel, VBox gamePane, Label statusLabel,
                            Label menuStatusLabel, BooleanSupplier connectedSupplier,
@@ -66,6 +61,7 @@ final class MainViewGameController {
         this.boardCoordinator = boardCoordinator;
         this.effects = effects;
         this.gameDialogService = gameDialogService;
+        this.paymentSelectionDialog = paymentSelectionDialog;
         this.audioFeedbackService = audioFeedbackService;
         this.actionPayloadBuilder = actionPayloadBuilder;
         this.gameViewModel = gameViewModel;
@@ -79,12 +75,25 @@ final class MainViewGameController {
         this.restoreInitialMenuState = restoreInitialMenuState;
         this.backToMenu = backToMenu;
         this.botTurnRunner = botTurnRunner;
+        this.interactionCoordinator = new MainViewInteractionCoordinator(
+                client,
+                uiSynchronizer,
+                paymentSelectionDialog,
+                gameDialogService,
+                audioFeedbackService,
+                gameViewModel,
+                gamePane,
+                statusLabel,
+                playerIdSupplier,
+                restoreInitialMenuState,
+                backToMenu,
+                response -> renderAndHandle(response, true)
+        );
     }
 
     // Clear transient dialog and end-state flags for a fresh local flow.
     void resetLocalFlowState() {
-        gameOverHandled = false;
-        jsnPromptShowing = false;
+        interactionCoordinator.resetLocalFlowState();
     }
 
     // Toggle the local player's ready state in the current room.
@@ -291,13 +300,7 @@ final class MainViewGameController {
 
     // Run any follow-up UI flow required by the latest synced state.
     boolean handleStateDrivenInteractions() {
-        if (maybeHandleJsnPrompt()) {
-            return true;
-        }
-        if (maybeHandleGameOver()) {
-            return true;
-        }
-        return false;
+        return interactionCoordinator.handleStateDrivenInteractions();
     }
 
     private boolean ensureCardSelected() {
@@ -319,79 +322,6 @@ final class MainViewGameController {
         if (!handleStateDrivenInteractions()) {
             botTurnRunner.run();
         }
-    }
-
-    // Show a Just Say No prompt when the backend is waiting on this player.
-    private boolean maybeHandleJsnPrompt() {
-        GameState currentState = uiSynchronizer.currentState();
-        if (jsnPromptShowing || currentState == null) {
-            return false;
-        }
-        String responder = nonEmpty(currentState.jsnResponderPlayerId(), "");
-        if (!playerIdSupplier.get().equals(responder)) {
-            return false;
-        }
-        jsnPromptShowing = true;
-        Platform.runLater(() -> {
-            try {
-                ChoiceDialog<String> dialog = new ChoiceDialog<>("No", List.of("No", "Yes"));
-                gameDialogService.styleDialog(dialog, gamePane);
-                dialog.setTitle("Just Say No");
-                dialog.setHeaderText("Action card: " + nonEmpty(currentState.jsnSourceAction(), "Unknown") + " targets you. Use Just Say No?");
-                Timeline timeout = new Timeline(new KeyFrame(Duration.seconds(10), event -> dialog.setResult("No")));
-                timeout.setCycleCount(1);
-                timeout.play();
-                String result = dialog.showAndWait().orElse("No");
-                timeout.stop();
-                boolean useCard = "Yes".equals(result);
-                renderAndHandle(client.send("RESPOND_JSN", playerIdSupplier.get(), Map.of("useCard", String.valueOf(useCard))), true);
-            } catch (Exception exception) {
-                uiSynchronizer.appendActionLog("JSN response failed: " + exception.getMessage());
-            } finally {
-                jsnPromptShowing = false;
-            }
-        });
-        return true;
-    }
-
-    // Show the winner dialog once and route the UI back to the menu if needed.
-    private boolean maybeHandleGameOver() {
-        GameState currentState = uiSynchronizer.currentState();
-        if (currentState == null || !currentState.gameOver() || gameOverHandled) {
-            return false;
-        }
-        gameOverHandled = true;
-        final String winnerId = nonEmpty(currentState.winnerPlayerId(), "Unknown player");
-        final boolean host = isHostPlayer(currentState);
-        Platform.runLater(() -> {
-            try {
-                audioFeedbackService.playVictory();
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                gameDialogService.styleDialog(alert, gamePane);
-                alert.setTitle("Game Over");
-                alert.setHeaderText("Winner");
-                alert.setContentText(winnerId + " wins");
-                alert.showAndWait();
-                if (host) {
-                    client.send("RESET", playerIdSupplier.get(), Map.of());
-                }
-            } catch (Exception exception) {
-                uiSynchronizer.appendActionLog("Game-over handling failed: " + exception.getMessage());
-            } finally {
-                uiSynchronizer.clearLocalGameState();
-                restoreInitialMenuState.run();
-                backToMenu.run();
-            }
-        });
-        return true;
-    }
-
-    private boolean isHostPlayer(GameState currentState) {
-        if (currentState.players() == null || currentState.players().isEmpty()) {
-            return false;
-        }
-        String hostId = currentState.players().get(0).player().id();
-        return hostId != null && hostId.equals(playerIdSupplier.get());
     }
 
     private String buildRecolorOptionText(String currentColor, Card card) {

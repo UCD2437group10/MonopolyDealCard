@@ -40,7 +40,4 @@ final class VictoryManager {
         return PropertySetRules.requiredSetSize(color);
     }
 
-    String baseColor(String color) {
-        return PropertySetRules.baseColor(color);
-    }
 }

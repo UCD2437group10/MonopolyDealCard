@@ -10,6 +10,7 @@ import edu.group10.monopolydeal.backend.model.player.Player;
 import edu.group10.monopolydeal.backend.model.player.PlayerState;
 import edu.group10.monopolydeal.backend.service.DeckService;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,12 @@ class GameEngineJustSayNoTest {
         engine.playActionCard("p1", 0, Map.of("targetPlayerId", "p2"));
 
         assertEquals("", engine.snapshot().jsnResponderPlayerId());
+        assertEquals("p2", engine.snapshot().pendingPaymentPayerPlayerId());
+
+        Map<String, List<Integer>> properties = new LinkedHashMap<>();
+        engine.submitPendingPayment("p2", new PaymentSelection(List.of(0), properties));
+
+        assertEquals("", engine.snapshot().pendingPaymentPayerPlayerId());
         assertEquals(5, p1.bankTotal());
         assertEquals(0, p2.bankTotal());
         assertTrue(p2.bank().isEmpty());

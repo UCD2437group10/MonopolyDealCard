@@ -5,6 +5,7 @@ import edu.group10.monopolydeal.frontend.network.client.GameClient;
 import edu.group10.monopolydeal.frontend.view.AudioFeedbackService;
 import edu.group10.monopolydeal.frontend.view.GameBoardView;
 import edu.group10.monopolydeal.frontend.view.GameDialogService;
+import edu.group10.monopolydeal.frontend.view.PaymentSelectionDialog;
 import edu.group10.monopolydeal.frontend.viewmodel.GameViewModel;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -71,6 +72,7 @@ public class MainViewController {
     private final GameDialogService gameDialogService = new GameDialogService();
     private final AudioFeedbackService audioFeedbackService = new AudioFeedbackService();
     private final ActionPayloadBuilder actionPayloadBuilder = new ActionPayloadBuilder();
+    private final PaymentSelectionDialog paymentSelectionDialog = new PaymentSelectionDialog(gameDialogService);
 
     private MainViewHandController handController;
     private MainViewBoardCoordinator boardCoordinator;
@@ -153,6 +155,7 @@ public class MainViewController {
                 boardCoordinator,
                 effects,
                 gameDialogService,
+                paymentSelectionDialog,
                 audioFeedbackService,
                 actionPayloadBuilder,
                 gameViewModel,
