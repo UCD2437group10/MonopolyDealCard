@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monopoly Deal - 大富翁纸牌游戏 答辩文档</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text2: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #79c0ff;
+  --green: #3fb950;
+  --yellow: #d2991d;
+  --orange: #db6d28;
+  --red: #f85149;
+  --purple: #a371f7;
+  --pink: #db61a2;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg); color: var(--text);
+  line-height: 1.6; padding: 24px;
+}
+h1 { font-size: 2.2em; text-align: center; margin: 20px 0 8px; color: var(--accent2); }
+h2 { font-size: 1.6em; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); color: var(--accent); }
+h3 { font-size: 1.2em; margin: 24px 0 8px; color: var(--green); }
+h4 { font-size: 1.05em; margin: 16px 0 4px; color: var(--yellow); }
+.toc { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 28px; margin: 24px auto; max-width: 800px; }
+.toc a { color: var(--accent); text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+.toc ol { padding-left: 24px; }
+.toc li { margin: 4px 0; }
+.container { max-width: 1100px; margin: 0 auto; }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px 24px; margin: 16px 0;
+}
+.card h3 { margin-top: 0; }
+.badge {
+  display: inline-block; padding: 2px 10px; border-radius: 12px;
+  font-size: 0.78em; font-weight: 600; margin-right: 6px;
+}
+.badge-layer { background: #1f3a5f; color: #79c0ff; }
+.badge-type { background: #2f1f3a; color: #c084fc; }
+.badge-io { background: #1f3a2f; color: #3fb950; }
+pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 14px 18px; overflow-x: auto; font-size: 0.88em; }
+code { font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace; font-size: 0.92em; }
+pre code { font-size: 0.88em; }
+.str { color: #a5d6ff; }
+.keyword { color: #ff7b72; }
+.type { color: #ffa657; }
+.comment { color: #8b949e; font-style: italic; }
+.annotation { color: #ffa657; }
+.method { color: #d2a8ff; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; font-size: 0.9em; }
+th { background: var(--surface2); color: var(--accent2); }
+tr:hover td { background: var(--surface2); }
+.arch-diagram {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 24px; margin: 16px 0; font-family: monospace; font-size: 0.85em;
+  white-space: pre; line-height: 1.8; overflow-x: auto;
+}
+.flow-diagram {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px 24px; margin: 16px 0; font-family: monospace; font-size: 0.85em;
+  white-space: pre; line-height: 1.7; overflow-x: auto;
+}
+.highlight { background: rgba(88,166,255,0.12); padding: 1px 4px; border-radius: 2px; }
+.example-box {
+  background: #1a2228; border-left: 4px solid var(--green); padding: 16px 20px;
+  margin: 16px 0; border-radius: 0 8px 8px 0;
+}
+.example-box.delete {
+  border-left-color: var(--red);
+}
+ol.steps { padding-left: 20px; }
+ol.steps li { margin: 8px 0; }
+.warn { background: rgba(248,81,73,0.12); border: 1px solid var(--red); border-radius: 6px; padding: 10px 14px; margin: 8px 0; font-size: 0.9em; }
+.info { background: rgba(88,166,255,0.1); border: 1px solid var(--accent); border-radius: 6px; padding: 10px 14px; margin: 8px 0; font-size: 0.9em; }
+.package-tree { font-size: 0.88em; line-height: 2; }
+.package-tree .dir { color: var(--accent); }
+.package-tree .file { color: var(--text2); margin-left: 20px; }
+.package-tree .file-java { color: #c9d1d9; margin-left: 20px; }
+.clickable-section summary {
+  cursor: pointer; font-size: 1.1em; font-weight: 600; color: var(--accent2);
+  padding: 6px 0; user-select: none;
+}
+.clickable-section summary:hover { color: var(--accent); }
+.clickable-section { margin: 8px 0; }
+.footer { text-align: center; margin: 40px 0 20px; color: var(--text2); font-size: 0.85em; }
+hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>🏠 Monopoly Deal 大富翁纸牌游戏</h1>
+<p style="text-align:center;color:var(--text2);margin-bottom:24px;">
+  软件工程课程设计 · 第10组 · 答辩技术文档
+</p>
+
+<!-- ==================== TOC ==================== -->
+<div class="toc">
+<h3 style="margin-top:0;">📑 目录</h3>
+<ol>
+  <li><a href="#arch">整体架构概览</a></li>
+  <li><a href="#pkg">包结构与依赖关系</a></li>
+  <li><a href="#backend-model">后端-模型层</a></li>
+  <li><a href="#backend-game">后端-游戏引擎</a></li>
+  <li><a href="#backend-service">后端-规则服务层</a></li>
+  <li><a href="#backend-network">后端-网络层</a></li>
+  <li><a href="#frontend-app">前端-应用入口</a></li>
+  <li><a href="#frontend-controller">前端-控制器层</a></li>
+  <li><a href="#frontend-view">前端-视图层</a></li>
+  <li><a href="#frontend-viewmodel">前端-视图模型</a></li>
+  <li><a href="#feature-composition">功能组成分析</a></li>
+  <li><a href="#how-to-add">如何添加新功能</a></li>
+  <li><a href="#how-to-delete">如何删除功能</a></li>
+</ol>
+</div>
+
+<!-- ==================== 1. ARCH ==================== -->
+<h2 id="arch">1. 整体架构概览</h2>
+
+<div class="card">
+  <h3>分层架构 (Layered Architecture)</h3>
+  <div class="arch-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                    🖥️  JavaFX 前端                          │
+│  ┌──────────┐ ┌───────────┐ ┌─────────┐ ┌──────────────┐  │
+│  │Controller│ │   View    │ │ViewModel│ │  Animations  │  │
+│  │ (6 files)│ │ (4 files) │ │ (1 file)│ │  (Effects)   │  │
+│  └────┬─────┘ └───────────┘ └─────────┘ └──────────────┘  │
+│       │                                                    │
+│       │  GameClient (本地直连 或 TCP Socket)                │
+├───────┼────────────────────────────────────────────────────┤
+│       ▼            🔌 网络传输层                            │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  GameServer ◄─TCP Socket─► GameClient                │  │
+│  │       │                         │                    │  │
+│  │  GameRequest ───JSON──►  GameResponse                │  │
+│  │       │                         │                    │  │
+│  │  GameCommandService      ProtocolMapper              │  │
+│  └───────┬──────────────────────────┘                   │  │
+│          │                                              │  │
+│          ▼            🎮 游戏逻辑层                       │
+│  ┌──────────────────────────────────────────────────┐    │  │
+│  │  GameEngine (状态机 + 规则引擎)                     │    │  │
+│  │      │                                            │    │  │
+│  │  ┌───┴────┐  ┌─────────────┐  ┌──────────────┐   │    │  │
+│  │  │Player  │  │CardMoneyRules│  │CardProperty  │   │    │  │
+│  │  │State   │  │             │  │   Rules      │   │    │  │
+│  │  └────────┘  └─────────────┘  └──────────────┘   │    │  │
+│  │       │              │               │            │    │  │
+│  │  ┌────┴──────────────┴───────────────┴─────┐      │    │  │
+│  │  │          DeckService (牌堆管理)          │      │    │  │
+│  │  └─────────────────────────────────────────┘      │    │  │
+│  │  ┌──────────────────────┐                        │    │  │
+│  │  │  BotTurnService (AI) │                        │    │  │
+│  │  └──────────────────────┘                        │    │  │
+│  └──────────────────────────────────────────────────┘    │  │
+│                                                          │
+│          ▼            📦 数据模型层                        │
+│  ┌──────────────────────────────────────────────────┐    │  │
+│  │ Card(接口) → SimpleCard(record)                  │    │  │
+│  │ CardType(enum): PROPERTY/ACTION/RENT/MONEY/      │    │  │
+│  │                 MULTI_PROPERTY                    │    │  │
+│  │ Player(record) → PlayerState(可变状态)             │    │  │
+│  │ GameState(record, 不可变快照)                      │    │  │
+│  └──────────────────────────────────────────────────┘    │  │
+└─────────────────────────────────────────────────────────────┘
+  </div>
+  <p style="margin-top:12px;color:var(--text2);">
+    系统采用 <strong>MVC + 分层架构</strong>。后端使用 <strong>状态机模式</strong>（大厅→游戏中→结束），
+    前端使用 <strong>MVVM</strong>（ViewModel 投影后端状态供 View 消费），前后端通过 <strong>命令模式</strong>（Request-Response over TCP/JSON）通信。
+  </p>
+</div>
+
+<!-- ==================== 2. PACKAGE ==================== -->
+<h2 id="pkg">2. 包结构与依赖关系</h2>
+
+<div class="card">
+  <div class="package-tree">
+    <span class="dir">📁 src/main/java/edu/group10/monopolydeal/</span><br>
+    <span class="dir">├── 📁 launcher/</span><br>
+    <span class="file-java">│   └── GameLauncher.java</span> <span class="comment">← 程序入口</span><br>
+    <span class="dir">├── 📁 common/</span><br>
+    <span class="file-java">│   └── JsonCodec.java</span> <span class="comment">← Jackson JSON 编解码</span><br>
+    <span class="dir">├── 📁 backend/</span><br>
+    <span class="dir">│   ├── 📁 game/</span> <span class="comment">← 游戏引擎核心</span><br>
+    <span class="file-java">│   │   ├── GameEngine.java</span><br>
+    <span class="file-java">│   │   ├── GameState.java</span><br>
+    <span class="file-java">│   │   └── BotTurnService.java</span><br>
+    <span class="dir">│   ├── 📁 model/</span><br>
+    <span class="dir">│   │   ├── 📁 card/</span><br>
+    <span class="file-java">│   │   │   ├── Card.java</span><br>
+    <span class="file-java">│   │   │   ├── CardType.java</span><br>
+    <span class="file-java">│   │   │   └── SimpleCard.java</span><br>
+    <span class="dir">│   │   └── 📁 player/</span><br>
+    <span class="file-java">│   │       ├── Player.java</span><br>
+    <span class="file-java">│   │       └── PlayerState.java</span><br>
+    <span class="dir">│   ├── 📁 service/</span><br>
+    <span class="file-java">│   │   ├── DeckService.java</span><br>
+    <span class="file-java">│   │   ├── CardMoneyRules.java</span><br>
+    <span class="file-java">│   │   ├── CardPropertyRules.java</span><br>
+    <span class="file-java">│   │   └── GameCommandService.java</span><br>
+    <span class="dir">│   └── 📁 network/</span><br>
+    <span class="dir">│       ├── 📁 protocol/</span><br>
+    <span class="file-java">│       │   ├── GameRequest.java</span><br>
+    <span class="file-java">│       │   ├── GameResponse.java</span><br>
+    <span class="file-java">│       │   ├── NetGameResponse.java</span><br>
+    <span class="file-java">│       │   ├── NetGameState.java</span><br>
+    <span class="file-java">│       │   ├── NetPlayerState.java</span><br>
+    <span class="file-java">│       │   └── ProtocolMapper.java</span><br>
+    <span class="dir">│       └── 📁 server/</span><br>
+    <span class="file-java">│           └── GameServer.java</span><br>
+    <span class="dir">└── 📁 frontend/</span><br>
+    <span class="dir">    ├── 📁 app/</span><br>
+    <span class="file-java">    │   └── GameClientApp.java</span><br>
+    <span class="dir">    ├── 📁 context/</span><br>
+    <span class="file-java">    │   └── FrontendContext.java</span><br>
+    <span class="dir">    ├── 📁 network/client/</span><br>
+    <span class="file-java">    │   └── GameClient.java</span><br>
+    <span class="dir">    ├── 📁 controller/</span><br>
+    <span class="file-java">    │   ├── MainViewController.java</span><br>
+    <span class="file-java">    │   ├── ActionPayloadBuilder.java</span><br>
+    <span class="file-java">    │   ├── MainViewBoardCoordinator.java</span><br>
+    <span class="file-java">    │   ├── MainViewEffects.java</span><br>
+    <span class="file-java">    │   ├── MainViewHandController.java</span><br>
+    <span class="file-java">    │   ├── NetworkErrorHandler.java</span><br>
+    <span class="file-java">    │   └── PollingCoordinator.java</span><br>
+    <span class="dir">    ├── 📁 view/</span><br>
+    <span class="file-java">    │   ├── AudioFeedbackService.java</span><br>
+    <span class="file-java">    │   ├── CardImageRegistry.java</span><br>
+    <span class="file-java">    │   ├── GameBoardView.java</span><br>
+    <span class="file-java">    │   └── GameDialogService.java</span><br>
+    <span class="dir">    └── 📁 viewmodel/</span><br>
+    <span class="file-java">        └── GameViewModel.java</span><br>
+  </div>
+  <p style="margin-top:12px;color:var(--text2);">
+    共 <strong>36 个 Java 源文件</strong>（含 10 个测试文件），
+    依赖：<strong>JavaFX 21</strong>（UI）、<strong>Jackson</strong>（JSON）、<strong>Jetty</strong>（HTTP服务器，遗留）、<strong>SLF4J</strong>（日志）、<strong>JUnit 5</strong>（测试）。
+  </p>
+</div>
+
+<!-- ==================== 3. BACKEND MODEL ==================== -->
+<h2 id="backend-model">3. 后端 — 数据模型层 <span class="badge badge-layer">Model</span></h2>
+
+<div class="card">
+  <h3>3.1 Card 接口 &amp; CardType 枚举 &amp; SimpleCard</h3>
+  <table>
+    <tr><th>文件</th><th>类型</th><th>职责</th></tr>
+    <tr>
+      <td><code>Card.java</code></td>
+      <td><span class="badge badge-type">interface</span></td>
+      <td>定义卡牌的四项基本属性：<code>name()</code>, <code>type()</code>, <code>color()</code>, <code>bankValue()</code></td>
+    </tr>
+    <tr>
+      <td><code>CardType.java</code></td>
+      <td><span class="badge badge-type">enum</span></td>
+      <td>五种卡牌类型：PROPERTY, ACTION, RENT, MONEY, MULTI_PROPERTY</td>
+    </tr>
+    <tr>
+      <td><code>SimpleCard.java</code></td>
+      <td><span class="badge badge-type">record</span></td>
+      <td>Java 14 record 实现 Card 接口，不可变，被全局使用</td>
+    </tr>
+  </table>
+  <pre><code><span class="comment">// Card.java - 接口定义</span>
+<span class="keyword">public interface</span> <span class="type">Card</span> {
+    String <span class="method">name</span>();       <span class="comment">// 卡牌名称，如 "Pass Go"、"Forced Deal"</span>
+    CardType <span class="method">type</span>();     <span class="comment">// 卡牌类型枚举</span>
+    String <span class="method">color</span>();      <span class="comment">// 颜色："Brown", "Wild", "Light Blue/Brown", "-"</span>
+    <span class="keyword">int</span> <span class="method">bankValue</span>();   <span class="comment">// 银行价值: 1-10</span>
+}
+
+<span class="comment">// SimpleCard.java - 不可变实现</span>
+<span class="keyword">public record</span> <span class="type">SimpleCard</span>(
+    String name, CardType type, String color, <span class="keyword">int</span> bankValue
+) <span class="keyword">implements</span> Card {}</code></pre>
+  <div class="info">💡 <strong>设计思想</strong>：Card 是接口 + SimpleCard 是唯一实现的模式，方便未来扩展（如添加特效卡、稀有卡）。</div>
+</div>
+
+<div class="card">
+  <h3>3.2 Player &amp; PlayerState</h3>
+  <table>
+    <tr><th>文件</th><th>类型</th><th>职责</th></tr>
+    <tr>
+      <td><code>Player.java</code></td>
+      <td><span class="badge badge-type">record</span></td>
+      <td>不可变玩家身份：<code>id</code>, <code>displayName</code>, <code>bot</code></td>
+    </tr>
+    <tr>
+      <td><code>PlayerState.java</code></td>
+      <td><span class="badge badge-type">class</span></td>
+      <td>可变游戏状态：手牌、银行、房产组、房屋/酒店计数。包含 <strong>自动分组逻辑</strong></td>
+    </tr>
+  </table>
+  <h4>PlayerState 核心字段与分组算法</h4>
+  <pre><code><span class="keyword">public class</span> <span class="type">PlayerState</span> {
+    <span class="keyword">private final</span> Player player;
+    <span class="keyword">private final</span> List&lt;Card&gt; hand;                        <span class="comment">// 手牌</span>
+    <span class="keyword">private final</span> List&lt;Card&gt; bank;                        <span class="comment">// 银行（已打出的钱）</span>
+    <span class="keyword">private final</span> Map&lt;String, List&lt;Card&gt;&gt; properties;     <span class="comment">// 房产组，key="Brown"/"Brown (2)"</span>
+    <span class="keyword">private final</span> Map&lt;String, Integer&gt; houseByColor;      <span class="comment">// 房屋计数</span>
+    <span class="keyword">private final</span> Map&lt;String, Integer&gt; hotelByColor;      <span class="comment">// 酒店计数</span>
+}</code></pre>
+  <div class="info">
+    💡 <strong>关键算法 — 自动分组</strong>：当玩家已有完整 "Brown" 组（2张），再打出一张 Brown 房产时，
+    <code>findPropertyGroupForAdd()</code> 会自动创建 <strong>"Brown (2)"</strong> 新组而不会覆盖原组。
+    这支持了"一套颜色多组满编"的高级策略。
+  </div>
+</div>
+
+<!-- ==================== 4. BACKEND GAME ==================== -->
+<h2 id="backend-game">4. 后端 — 游戏引擎 <span class="badge badge-layer">Core</span></h2>
+
+<div class="card">
+  <h3>4.1 GameEngine — 规则状态机</h3>
+  <p>这是整个项目<strong>最核心</strong>的类（~812行）。管理游戏从大厅到结束的完整生命周期。</p>
+
+  <h4>核心常量</h4>
+  <table>
+    <tr><th>常量</th><th>值</th><th>含义</th></tr>
+    <tr><td>START_HAND_COUNT</td><td>5</td><td>开局发牌数</td></tr>
+    <tr><td>EMPTY_HAND_BONUS_DRAW</td><td>5</td><td>空手牌回合额外抽牌</td></tr>
+    <tr><td>TURN_START_DRAW</td><td>2</td><td>每回合开始抽牌数</td></tr>
+    <tr><td>MAX_ACTION_PER_TURN</td><td>3</td><td>每回合最多操作次数</td></tr>
+    <tr><td>END_HAND_LIMIT</td><td>7</td><td>回合结束手牌上限</td></tr>
+    <tr><td>JSN_TIMEOUT_MS</td><td>10000</td><td>Just Say No 响应超时</td></tr>
+  </table>
+
+  <h4>公开方法 — 游戏操作 API</h4>
+  <table>
+    <tr><th>方法</th><th>对应命令</th><th>功能</th></tr>
+    <tr><td><code>addPlayer(Player)</code></td><td>JOIN</td><td>添加玩家到房间</td></tr>
+    <tr><td><code>setReady(id, bool)</code></td><td>READY/UNREADY</td><td>设置准备状态</td></tr>
+    <tr><td><code>startGame(hostId)</code></td><td>START</td><td>发牌、启动游戏</td></tr>
+    <tr><td><code>playMoneyCard(id, idx)</code></td><td>PLAY_MONEY</td><td>将手牌存入银行</td></tr>
+    <tr><td><code>playPropertyCard(id, idx, color)</code></td><td>PLAY_PROPERTY</td><td>打出房产卡</td></tr>
+    <tr><td><code>changePropertyColor(...)</code></td><td>CHANGE_PROPERTY_COLOR</td><td>更改万能房产颜色</td></tr>
+    <tr><td><code>playRentCard(...)</code></td><td>PLAY_RENT</td><td>打出租金卡收费</td></tr>
+    <tr><td><code>playActionCard(id, idx, payload)</code></td><td>PLAY_ACTION</td><td>打出行动卡（核心分支逻辑）</td></tr>
+    <tr><td><code>respondJustSayNo(id, bool)</code></td><td>RESPOND_JSN</td><td>回应 Just Say No</td></tr>
+    <tr><td><code>endTurn(id)</code></td><td>END_TURN</td><td>结束回合</td></tr>
+    <tr><td><code>snapshot()</code></td><td>STATE</td><td>获取不可变状态快照</td></tr>
+    <tr><td><code>pollStateSnapshot()</code></td><td>STATE</td><td>安全轮询快照</td></tr>
+    <tr><td><code>playBotTurn(id)</code></td><td>BOT_TURN</td><td>让AI执行回合</td></tr>
+    <tr><td><code>resetGame()</code></td><td>RESET</td><td>重置回大厅</td></tr>
+  </table>
+
+  <h4>Just Say No 链式响应机制</h4>
+  <div class="flow-diagram">
+┌─────────────────────────────────────────────────────┐
+│  PendingJsn 状态机                                   │
+│                                                     │
+│  玩家A → 打出 Debt Collector → 目标B                 │
+│            │                                        │
+│            ▼                                        │
+│     ┌──────────────┐                                │
+│     │ B有JSN卡?    │──否──► 直接扣费，结束           │
+│     └──────┬───────┘                                │
+│            │是                                      │
+│            ▼                                        │
+│     ┌──────────────┐                                │
+│     │ B回应JSN=true│──► A的回合，A有JSN?             │
+│     └──────┬───────┘     │是→ A回应→ 可无限链式      │
+│            │否            │否→ 效果取消，结束         │
+│            ▼              │                          │
+│       效果执行，结束       │                          │
+│                                                     │
+│  超时=10秒自动pass  │  Bot自动用JSN                  │
+│  没有JSN卡的玩家自动pass                              │
+└─────────────────────────────────────────────────────┘
+  </div>
+
+  <h4>行动卡 switch 分支调度</h4>
+  <pre><code><span class="comment">// GameEngine.playActionCard() 中的调度逻辑</span>
+<span class="keyword">switch</span> (actionCard.name()) {
+    <span class="keyword">case</span> <span class="str">"Pass Go"</span>         → drawCardsInternal(playerId, 2);    <span class="comment">// 直接抽2张</span>
+    <span class="keyword">case</span> <span class="str">"Debt Collector"</span>  → startPendingJsn(DEBT_COLLECTOR, ...) <span class="comment">// 进入JSN链</span>
+    <span class="keyword">case</span> <span class="str">"It's My Birthday"</span>→ startPendingJsn(ITS_MY_BIRTHDAY, ...) <span class="comment">// 全体目标</span>
+    <span class="keyword">case</span> <span class="str">"Sly Deal"</span>        → startPendingJsn(SLY_DEAL, ...)       <span class="comment">// 偷单张房产</span>
+    <span class="keyword">case</span> <span class="str">"Forced Deal"</span>     → startPendingJsn(FORCED_DEAL, ...)    <span class="comment">// 强制交换</span>
+    <span class="keyword">case</span> <span class="str">"Deal Breaker"</span>    → startPendingJsn(DEAL_BREAKER, ...)   <span class="comment">// 偷全套房产</span>
+    <span class="keyword">case</span> <span class="str">"House"</span>           → addHouse(playerId, color);            <span class="comment">// 直接建造</span>
+    <span class="keyword">case</span> <span class="str">"Hotel"</span>           → addHotel(playerId, color);           <span class="comment">// 直接升级</span>
+    <span class="keyword">case</span> <span class="str">"Just Say No"</span>, <span class="str">"Double The Rent"</span>
+                          → <span class="keyword">throw</span> IllegalArgumentException <span class="comment">// 被动使用，不可主动打</span>
+}</code></pre>
+</div>
+
+<div class="card">
+  <h3>4.2 GameState — 不可变快照 (Record)</h3>
+  <pre><code><span class="keyword">public record</span> <span class="type">GameState</span>(
+    <span class="keyword">boolean</span> started, <span class="keyword">boolean</span> gameOver, String winnerPlayerId,
+    String currentPlayerId,           <span class="comment">// 当前回合玩家</span>
+    String jsnResponderPlayerId,      <span class="comment">// 等待JSN回应的玩家</span>
+    String jsnActorPlayerId,          <span class="comment">// 发起JSN链的玩家</span>
+    String jsnTargetPlayerId,         <span class="comment">// JSN原始目标</span>
+    String jsnSourceAction,           <span class="comment">// 触发JSN的行动卡名</span>
+    <span class="keyword">int</span> drawPileCount, <span class="keyword">int</span> discardPileCount,
+    List&lt;Card&gt; discardPileCards,
+    List&lt;PlayerState&gt; players,        <span class="comment">// 所有玩家状态</span>
+    Set&lt;String&gt; readyPlayerIds        <span class="comment">// 已准备玩家</span>
+) {}</code></pre>
+  <div class="info">💡 使用 Java <code>record</code> 确保快照不可变，前端轮询时不会出现并发修改问题。</div>
+</div>
+
+<div class="card">
+  <h3>4.3 BotTurnService — 简单AI</h3>
+  <p>贪婪策略：优先打钱→打房产→用最便宜的Action当钱→打行动卡。最多尝试12次，每回合最多3个动作。</p>
+  <pre><code><span class="keyword">void</span> <span class="method">playTurn</span>(GameEngine engine, String playerId) {
+    <span class="keyword">int</span> tries = 0, actionsPlayed = 0;
+    <span class="keyword">while</span> (tries &lt; 12 && actionsPlayed &lt; 3) {
+        <span class="keyword">if</span> (tryPlayMoney(...))   { actionsPlayed++; <span class="keyword">continue</span>; }  <span class="comment">// 1. 优先打钱</span>
+        <span class="keyword">if</span> (tryPlayProperty(...)){ actionsPlayed++; <span class="keyword">continue</span>; }  <span class="comment">// 2. 打房产</span>
+        <span class="keyword">if</span> (bankTotal==0 && tryPlayCheapestActionAsMoney(...))   <span class="comment">// 3. 没钱时把Action当钱</span>
+        <span class="keyword">if</span> (tryPlayAction(...))  { actionsPlayed++; <span class="keyword">continue</span>; }  <span class="comment">// 4. 打行动卡</span>
+        <span class="keyword">break</span>;
+    }
+    engine.endTurn(playerId);  <span class="comment">// 每步后检查JSN状态，有等待则暂停</span>
+}</code></pre>
+</div>
+
+<!-- ==================== 5. SERVICE ==================== -->
+<h2 id="backend-service">5. 后端 — 规则服务层 <span class="badge badge-layer">Service</span></h2>
+
+<div class="card">
+  <h3>5.1 DeckService — 牌堆工厂</h3>
+  <p>按大富翁纸牌游戏标准创建<strong>109张</strong>完整牌堆，并随机洗牌。</p>
+  <table>
+    <tr><th>卡牌类别</th><th>数量</th><th>示例</th></tr>
+    <tr><td>Property (房产)</td><td>28</td><td>Mediterranean Avenue (Brown), Boardwalk (Deep Blue)...</td></tr>
+    <tr><td>Multi-Property (万能房产)</td><td>11</td><td>Wild Property ×2, Light Blue/Brown Multi...</td></tr>
+    <tr><td>Action (行动卡)</td><td>34</td><td>Pass Go ×10, Forced Deal ×4, Deal Breaker ×2...</td></tr>
+    <tr><td>Rent (租金卡)</td><td>12</td><td>Rent Wild ×3, 双色租金卡各2张</td></tr>
+    <tr><td>Money (金钱卡)</td><td>24</td><td>1M ×6, 2M ×5, 3M ×3, 4M ×3, 5M ×2, 10M ×1</td></tr>
+  </table>
+  <div class="info">💡 测试中用 FixedDeckService（匿名子类）覆盖 <code>createDeck()</code> 来固定牌堆，确保单元测试确定性。</div>
+</div>
+
+<div class="card">
+  <h3>5.2 CardMoneyRules — 金钱规则</h3>
+  <pre><code><span class="keyword">public final class</span> <span class="type">CardMoneyRules</span> {
+    <span class="keyword">public static boolean</span> <span class="method">canBank</span>(Card card) {
+        <span class="comment">// MONEY、ACTION、RENT 可以存入银行，PROPERTY/MULTI_PROPERTY 不行</span>
+        <span class="keyword">return</span> card.type() == MONEY || card.type() == ACTION || card.type() == RENT;
+    }
+    <span class="keyword">public static void</span> <span class="method">validateBankable</span>(Card card) {
+        <span class="keyword">if</span> (!canBank(card)) <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="str">"..."</span>);
+        <span class="keyword">if</span> (card.bankValue() &lt;= 0) <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="str">"..."</span>);
+    }
+}</code></pre>
+</div>
+
+<div class="card">
+  <h3>5.3 CardPropertyRules — 房产颜色规则</h3>
+  <p>管理10种基础色 + 万能房产的颜色映射表。核心方法：</p>
+  <ul>
+    <li><code>allowedPropertyColors(Card)</code> — 返回可选的合法颜色列表</li>
+    <li><code>resolvePropertyColor(Card, colorChoice)</code> — 验证并解析最终颜色</li>
+  </ul>
+  <pre><code><span class="comment">// 静态映射表：卡牌名 → 可选颜色</span>
+<span class="keyword">static</span> {
+    MULTI_PROPERTY_COLOR_BY_NAME.put(<span class="str">"Wild Property"</span>, ALL_PROPERTY_COLORS);  <span class="comment">// 全部10色</span>
+    MULTI_PROPERTY_COLOR_BY_NAME.put(<span class="str">"Light Blue/Brown Multi"</span>,
+        List.of(<span class="str">"Light Blue"</span>, <span class="str">"Brown"</span>));                   <span class="comment">// 限二选一</span>
+    <span class="comment">// ... 其余双色卡映射</span>
+}</code></pre>
+</div>
+
+<div class="card">
+  <h3>5.4 GameCommandService — 命令路由</h3>
+  <p>将15种字符串命令映射到 GameEngine 的具体方法调用，统一异常处理。支持的命令：</p>
+  <pre><code>JOIN, READY, UNREADY, START,
+PLAY_MONEY, PLAY_PROPERTY, PLAY_RENT, CHANGE_PROPERTY_COLOR,
+PLAY_ACTION, RESPOND_JSN, END_TURN, BOT_TURN, STATE, RESET</code></pre>
+  <p>每个命令失败时捕获异常并返回 <code>GameResponse(success=false, message=error, state=snapshot)</code>，保证前端不会因异常崩溃。</p>
+</div>
+
+<!-- ==================== 6. NETWORK ==================== -->
+<h2 id="backend-network">6. 后端 — 网络层 <span class="badge badge-io">IO</span></h2>
+
+<div class="card">
+  <h3>6.1 通信协议</h3>
+  <table>
+    <tr><th>类</th><th>类型</th><th>职责</th></tr>
+    <tr><td><code>GameRequest</code></td><td>record</td><td><code>(action, playerId, Map&lt;String,String&gt; payload)</code></td></tr>
+    <tr><td><code>GameResponse</code></td><td>record</td><td><code>(success, message, GameState)</code></td></tr>
+    <tr><td><code>NetGameResponse</code></td><td>record</td><td>网络版响应，GameState替换为NetGameState</td></tr>
+    <tr><td><code>NetGameState</code></td><td>record</td><td>网络版快照，PlayerState替换为NetPlayerState</td></tr>
+    <tr><td><code>NetPlayerState</code></td><td>record</td><td>网络版玩家状态，Card替换为SimpleCard</td></tr>
+    <tr><td><code>ProtocolMapper</code></td><td>class</td><td>Domain↔Net 双向转换器</td></tr>
+  </table>
+  <div class="info">
+    💡 <strong>为什么需要 Net* 版本？</strong>因为 Jackson 序列化需要通过无参构造器/record 来反序列化，
+    而 <code>Card</code> 是接口类型。Net 层全部使用 concrete record（<code>SimpleCard</code>）确保 JSON 可反序列化。
+  </div>
+</div>
+
+<div class="card">
+  <h3>6.2 GameServer — TCP Socket 服务器</h3>
+  <ul>
+    <li>监听指定端口，<code>newLine</code> 分隔协议，每行一个 JSON 请求/响应</li>
+    <li>支持 <strong>两种模式</strong>：①本地直连（<code>gameServer.handle(request)</code>）②TCP Socket（<code>runAcceptLoop</code>）</li>
+    <li>使用 <code>CachedThreadPool</code> 处理并发客户端</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>6.3 GameClient — 前端网络客户端</h3>
+  <ul>
+    <li>本地模式：直接调用 <code>localServer.handle()</code> 跳过网络</li>
+    <li>远程模式：TCP Socket + JSON 读写</li>
+    <li><code>send()</code> 方法是 <strong>synchronized</strong>，保证线程安全</li>
+  </ul>
+</div>
+
+<!-- ==================== 7. FRONTEND APP ==================== -->
+<h2 id="frontend-app">7. 前端 — 应用入口 <span class="badge badge-layer">UI</span></h2>
+
+<div class="card">
+  <h3>GameLauncher — 程序总入口</h3>
+  <pre><code><span class="keyword">public static void</span> <span class="method">main</span>(String[] args) {
+    GameServer server = <span class="keyword">new</span> GameServer(18080);  <span class="comment">// 1. 启动本地服务器</span>
+    server.start();
+
+    GameClient client = <span class="keyword">new</span> GameClient();          <span class="comment">// 2. 创建客户端</span>
+    FrontendContext.setGameClient(client);          <span class="comment">// 3. 注入全局上下文</span>
+
+    GameClientApp.launchApp(args);                  <span class="comment">// 4. 启动JavaFX UI</span>
+}</code></pre>
+  <p>这是一个典型的 <strong>同进程C/S架构</strong>——服务器和客户端在同一个Java进程中运行，适合桌面游戏。</p>
+
+  <h4>GameClientApp</h4>
+  <p>JavaFX Application 子类，加载 <code>main-view.fxml</code>，应用 <code>main-theme.css</code> 主题。</p>
+
+  <h4>FrontendContext</h4>
+  <p>静态持有 GameClient 的全局单例，因为 FXML 控制器的构造不由我们控制，需要用静态上下文注入依赖。</p>
+</div>
+
+<!-- ==================== 8. FRONTEND CONTROLLER ==================== -->
+<h2 id="frontend-controller">8. 前端 — 控制器层 <span class="badge badge-layer">Controller</span></h2>
+
+<div class="card">
+  <h3>8.1 MainViewController — 主控制器（~886行）</h3>
+  <p>前端<strong>中枢</strong>，通过 <code>@FXML</code> 绑定 UI 元素，组合以下子服务：</p>
+  <table>
+    <tr><th>组合对象</th><th>类型</th><th>职责</th></tr>
+    <tr><td>gameBoardView</td><td>GameBoardView</td><td>渲染对手面板、银行面板</td></tr>
+    <tr><td>gameViewModel</td><td>GameViewModel</td><td>投影后端状态到UI视图</td></tr>
+    <tr><td>gameDialogService</td><td>GameDialogService</td><td>弹出颜色选择、目标选择等对话框</td></tr>
+    <tr><td>audioFeedbackService</td><td>AudioFeedbackService</td><td>音效反馈</td></tr>
+    <tr><td>actionPayloadBuilder</td><td>ActionPayloadBuilder</td><td>构建行动卡所需的额外参数</td></tr>
+    <tr><td>networkErrorHandler</td><td>NetworkErrorHandler</td><td>跟踪连接状态</td></tr>
+    <tr><td>pollingCoordinator</td><td>PollingCoordinator</td><td>每1秒轮询STATE命令</td></tr>
+    <tr><td>handController</td><td>MainViewHandController</td><td>手牌渲染与选中</td></tr>
+    <tr><td>boardCoordinator</td><td>MainViewBoardCoordinator</td><td>面板渲染与按钮可用性</td></tr>
+    <tr><td>effects</td><td>MainViewEffects</td><td>卡片动画、抽牌特效</td></tr>
+  </table>
+
+  <h4>轮询机制</h4>
+  <pre><code><span class="comment">// 每1秒执行一次</span>
+pollingCoordinator.start(Duration.seconds(1), this::autoRefresh);
+
+<span class="keyword">void</span> <span class="method">autoRefresh</span>() {
+    pollingCoordinator.tryPoll(
+        () → connected && joined && gamePane.isVisible(),  <span class="comment">// 前置条件</span>
+        () → {
+            GameResponse = client.send(<span class="str">"STATE"</span>, playerId(), Map.of());
+            renderResponse(response);                       <span class="comment">// 更新全UI</span>
+            maybeRunBotTurn();                              <span class="comment">// 触发AI回合</span>
+        },
+        exception → networkErrorHandler.handlePollingFailure(...)
+    );
+}</code></pre>
+
+  <h4>JSN 弹窗处理</h4>
+  <p>当前端检测到 <code>jsnResponderPlayerId == 本地玩家</code> 时，弹出 10 秒倒计时对话框，超时自动选"No"。</p>
+</div>
+
+<div class="card">
+  <h3>8.2 辅助控制器</h3>
+  <table>
+    <tr><th>类</th><th>职责</th></tr>
+    <tr><td><code>ActionPayloadBuilder</code></td><td>根据行动卡名称，逐个弹出对话框收集 <code>targetPlayerId</code>, <code>color</code>, <code>propertyIndex</code> 等参数</td></tr>
+    <tr><td><code>MainViewBoardCoordinator</code></td><td>渲染银行、房产组、对手面板；管理6个操作按钮的 enable/disable 状态</td></tr>
+    <tr><td><code>MainViewHandController</code></td><td>渲染手牌图片按钮；跟踪当前选中的卡牌；通过 <code>buildHandKeys()</code> 做增量更新判断</td></tr>
+    <tr><td><code>MainViewEffects</code></td><td>出牌飞行动画；抽牌动画（从牌堆飞到各玩家区域）；牌堆/弃牌堆图片展示</td></tr>
+    <tr><td><code>PollingCoordinator</code></td><td>基于 JavaFX Timeline 的轮询调度器，<code>tryPoll()</code> 防止重入</td></tr>
+    <tr><td><code>NetworkErrorHandler</code></td><td>跟踪连接状态，更新 UI 中的连接错误提示文字</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 9. FRONTEND VIEW ==================== -->
+<h2 id="frontend-view">9. 前端 — 视图层 <span class="badge badge-layer">View</span></h2>
+
+<div class="card">
+  <h3>9.1 GameBoardView — 面板渲染</h3>
+  <p>负责创建具体的 JavaFX Node：银行按钮（带金额）、房产组按钮（带 进度/满编状态/房屋/酒店 信息）、对手摘要卡片。</p>
+</div>
+
+<div class="card">
+  <h3>9.2 CardImageRegistry — 卡牌图片注册表</h3>
+  <p>将游戏内的卡牌名称映射到 <code>/images/cards/</code> 下的67张卡牌图片。分为两层映射：</p>
+  <ol>
+    <li><strong>别名映射</strong> <code>CARD_NAME_ALIAS</code>：将运行时的卡牌名（如 "1M Money"）转换为规范名（"One Million"）</li>
+    <li><strong>文件映射</strong> <code>CARD_NAME_TO_FILE</code>：规范名 → 图片文件名（如 "One Million" → "1million new.jpg"）</li>
+  </ol>
+  <p>加载后缓存在 <code>CARD_IMAGE_CACHE</code> 中避免重复IO。</p>
+</div>
+
+<div class="card">
+  <h3>9.3 GameDialogService — 对话框工厂</h3>
+  <p>统一创建和样式化 JavaFX ChoiceDialog：</p>
+  <ul>
+    <li><code>chooseTargetPlayerId()</code></li>
+    <li><code>chooseColorFromList()</code></li>
+    <li><code>choosePropertyIndex()</code></li>
+    <li><code>chooseDoubleRentCount()</code>（0/1/2）</li>
+    <li><code>choosePropertyColor()</code>、<code>chooseRentColor()</code></li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>9.4 AudioFeedbackService — 音效</h3>
+  <p>使用 Java <code>Toolkit.beep()</code> 系统蜂鸣声，后台线程播放，支持音量控制：</p>
+  <ul>
+    <li>选卡：1声短促提示</li>
+    <li>出牌成功：2声间隔90ms</li>
+    <li>胜利：4声间隔120ms</li>
+  </ul>
+</div>
+
+<!-- ==================== 10. VIEWMODEL ==================== -->
+<h2 id="frontend-viewmodel">10. 前端 — 视图模型 <span class="badge badge-layer">ViewModel</span></h2>
+
+<div class="card">
+  <h3>GameViewModel</h3>
+  <p>将 <code>GameState</code> 投影为 UI 可用的字符串和布尔值：</p>
+  <table>
+    <tr><th>方法</th><th>返回</th><th>用途</th></tr>
+    <tr><td><code>isMyTurn()</code></td><td>boolean</td><td>判断按钮是否可点击</td></tr>
+    <tr><td><code>findMe()</code></td><td>PlayerState</td><td>查找本地玩家的状态</td></tr>
+    <tr><td><code>allHumanReady()</code></td><td>boolean</td><td>Start按钮是否可用</td></tr>
+    <tr><td><code>playersSummaryText()</code></td><td>String</td><td>右侧日志面板文本</td></tr>
+    <tr><td><code>propertyGroupDetail()</code></td><td>String</td><td>房产组详情弹窗文本</td></tr>
+    <tr><td><code>playerDetail()</code></td><td>String</td><td>玩家资产详情弹窗文本</td></tr>
+    <tr><td><code>requiredSetSize()</code></td><td>int</td><td>判断满编所需数量</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 11. FEATURE COMPOSITION ==================== -->
+<h2 id="feature-composition">11. 功能组成分析</h2>
+
+<div class="card">
+  <h3>以一个完整功能为例：打出 "Debt Collector" 行动卡</h3>
+  <div class="flow-diagram">
+用户点击手牌中的 "Debt Collector" → 选中卡牌（蓝色边框高亮）
+    │
+    ▼
+[MainViewHandController]  跟踪 selectedHandIndex=-1→2, selectedCard=DebtCollector
+    │
+    ▼
+[MainViewBoardCoordinator.updateActionFormBySelectedCard()]
+  检测到卡牌类型=ACTION → playActionButton.setDisable(false)
+    │
+    ▼
+用户点击 "Play Action" 按钮 → onPlayAction()
+    │
+    ▼
+[ActionPayloadBuilder.build()]
+  检测到卡名="Debt Collector" → 弹出 chooseTargetPlayerId() 对话框 → 用户选"p2"
+  返回 payload = {"handIndex":"2", "targetPlayerId":"p2"}
+    │
+    ▼
+[MainViewController.playCardWithCenterAnimation()]
+  触发飞行动画 → client.send("PLAY_ACTION", "p1", payload)
+    │
+    ▼
+[GameClient.send()] → (本地模式) → GameServer.handle()
+    │
+    ▼
+[GameCommandService.handle("PLAY_ACTION", ...)]
+  → gameEngine.playActionCard("p1", 2, {"targetPlayerId":"p2"})
+    │
+    ▼
+[GameEngine.playActionCard()]
+  1. takeHandCard("p1", 2) → 从手牌取出 Debt Collector
+  2. switch → "Debt Collector" → startPendingJsn(DEBT_COLLECTOR, payload, ["p2"])
+     ├─ p2 有 "Just Say No"? → 是 → pendingJsn.waitingPlayerId = "p2"
+     │  └─ (前端轮询检测到 jsnResponderPlayerId="p2" → 弹出JSN对话框)
+     │      ├─ p2回应"Yes" → 消耗JSN卡 → 反转等待者→p1
+     │      │   ├─ p1有JSN? → 可继续链式...
+     │      │   └─ p1回应"No" → 效果取消，p2不付钱（JSN链被奇数个Yes取消）
+     │      └─ p2回应"No"或超时 → 执行 transferPayment("p2","p1",5)
+     └─ p2 没有JSN → skipAutoPass → 直接执行 transferPayment("p2","p1",5)
+  3. addToDiscardPileIfAction → 弃牌堆.push(Debt Collector)
+  4. actionUsed++ → refreshWinner()
+    │
+    ▼
+[GameEngine.snapshot()] → GameResponse → 序列化JSON → 返回前端
+    │
+    ▼
+[MainViewController.renderResponse()] → syncView()
+  ├─ handController.render() → 手牌刷新（Debt Collector消失）
+  ├─ boardCoordinator.renderBoard() → 银行金额更新
+  └─ effects.updatePileButtons() → 弃牌堆计数+1
+  </div>
+</div>
+
+<!-- ==================== 12. HOW TO ADD ==================== -->
+<h2 id="how-to-add">12. 如何添加新功能</h2>
+
+<div class="example-box">
+  <h3>📌 案例：添加一张新行动卡 "Swap Hands"（交换手牌）</h3>
+  <p>假设要给游戏添加一张新行动卡，效果为：与目标玩家交换全部手牌。</p>
+
+  <h4>第1步：在 DeckService 中注册新卡</h4>
+  <pre><code><span class="comment">// DeckService.java — createDeck() 方法中添加</span>
+<span class="comment">// Action cards section</span>
+add(cards, <span class="str">"Swap Hands"</span>, CardType.ACTION, <span class="str">"-"</span>, 3, 2); <span class="comment">// 价值3，共2张</span></code></pre>
+  <div class="warn">⚠ 注意：总牌数必须为109。添加新卡后要同步减少其他卡的数量或调整总数验证。</div>
+
+  <h4>第2步：在 GameEngine 中添加效果逻辑</h4>
+  <pre><code><span class="comment">// GameEngine.java — playActionCard() 的 switch 中添加</span>
+<span class="keyword">case</span> <span class="str">"Swap Hands"</span> → {
+    String targetId = payload.getOrDefault(<span class="str">"targetPlayerId"</span>, <span class="str">""</span>);
+    startPendingJsn(playerId, actionCard.name(),
+        PendingEffectType.SWAP_HANDS, payload, List.of(targetId));
+}
+<span class="comment">// 同时在 PendingEffectType 枚举中添加 SWAP_HANDS</span>
+
+<span class="comment">// 在 applyPendingEffectForTarget() 中添加</span>
+<span class="keyword">case</span> SWAP_HANDS → swapHands(actorId, targetId);
+
+<span class="comment">// 实现交换逻辑</span>
+<span class="keyword">private void</span> swapHands(String actorId, String targetId) {
+    PlayerState actor = playerState(actorId);
+    PlayerState target = playerState(targetId);
+    List&lt;Card&gt; temp = <span class="keyword">new</span> ArrayList&lt;&gt;(actor.hand());
+    <span class="keyword">while</span> (!actor.hand().isEmpty()) actor.removeHandCard(0);
+    <span class="keyword">while</span> (!target.hand().isEmpty()) target.removeHandCard(0);
+    <span class="keyword">for</span> (Card c : temp) target.addToHand(c);
+    <span class="comment">// 原始target手牌已在swap前保存...</span>
+}</code></pre>
+
+  <h4>第3步：在 ActionPayloadBuilder 中添加 UI 参数收集</h4>
+  <pre><code><span class="comment">// ActionPayloadBuilder.java — build() 中添加</span>
+<span class="keyword">if</span> (<span class="str">"Swap Hands"</span>.equals(name)) {
+    String target = chooseTargetPlayerId.get();
+    <span class="keyword">if</span> (target == <span class="keyword">null</span>) <span class="keyword">return null</span>;
+    payload.put(<span class="str">"targetPlayerId"</span>, target);
+    <span class="keyword">return</span> payload;
+}</code></pre>
+
+  <h4>第4步：在 CardImageRegistry 中添加卡牌图片</h4>
+  <pre><code><span class="comment">// CardImageRegistry.java — CARD_NAME_TO_FILE</span>
+Map.entry(<span class="str">"Swap Hands"</span>, <span class="str">"swaphands.jpg"</span>),
+
+<span class="comment">// 同时在 src/main/resources/images/cards/ 放置 swaphands new.jpg</span></code></pre>
+
+  <h4>第5步：添加单元测试</h4>
+  <pre><code><span class="comment">// 新建 GameEngineSwapHandsTest.java</span>
+<span class="annotation">@Test</span>
+<span class="keyword">void</span> swapHandsExchangesAllHandCards() {
+    GameEngine engine = createStartedEngine();
+    engine.playActionCard(<span class="str">"p1"</span>, 0, Map.of(<span class="str">"targetPlayerId"</span>, <span class="str">"p2"</span>));
+    <span class="comment">// 断言 p1 的手牌变成了 p2 原来的手牌</span>
+}</code></pre>
+
+  <div class="info">
+    💡 <strong>总结：添加功能需要修改的完整链路</strong>：
+    DeckService → GameEngine(switch+枚举+applyEffect) → ActionPayloadBuilder → CardImageRegistry → 添加测试
+  </div>
+</div>
+
+<!-- ==================== 13. HOW TO DELETE ==================== -->
+<h2 id="how-to-delete">13. 如何删除功能</h2>
+
+<div class="example-box delete">
+  <h3>📌 案例：删除 "Hotel" 行动卡功能</h3>
+  <p>假设要去掉 Hotel 卡牌（酒店建造）功能，需要逐层移除：</p>
+
+  <h4>第1步：分析影响范围（最关键）</h4>
+  <p>使用 IDE 全局搜索 <code>"Hotel"</code> 字符串（含引号），找到所有引用：</p>
+  <table>
+    <tr><th>文件</th><th>引用位置</th><th>操作</th></tr>
+    <tr><td><code>DeckService.java</code></td><td><code>add(cards, "Hotel", ...)</code></td><td>🗑 删除此行，调整总数</td></tr>
+    <tr><td><code>GameEngine.java</code></td><td><code>case "Hotel" → addHotel(...)</code></td><td>🗑 删除此case分支</td></tr>
+    <tr><td><code>GameEngine.java</code></td><td><code>addHotel()</code> 方法</td><td>🗑 删除整个方法</td></tr>
+    <tr><td><code>GameEngine.java</code></td><td><code>hotelCannotBeAddedTwiceToSamePropertySet</code> 报错信息</td><td>🗑 删除此验证（在addHotel中）</td></tr>
+    <tr><td><code>PlayerState.java</code></td><td><code>hotelByColor</code> 字段</td><td>🗑 删除字段及所有方法</td></tr>
+    <tr><td><code>GameState.java</code></td><td>PlayerState 中包含 hotelByColor</td><td>⚠ PlayerState 通过 getter 返回，GameState 不直接引用</td></tr>
+    <tr><td><code>BotTurnService.java</code></td><td><code>findHotelColor()</code> 方法</td><td>🗑 删除此方法及调用</td></tr>
+    <tr><td><code>GameBoardView.java</code></td><td>渲染时读取 <code>p.hotelByColor()</code></td><td>🗑 移除 "T:" 相关显示</td></tr>
+    <tr><td><code>GameViewModel.java</code></td><td><code>propertyGroupDetail()</code> 中的 Hotel 行</td><td>🗑 移除 Hotel 显示行</td></tr>
+    <tr><td><code>NetPlayerState.java</code></td><td><code>hotelByColor</code> 字段</td><td>🗑 删除 record 字段</td></tr>
+    <tr><td><code>ProtocolMapper.java</code></td><td>序列化/反序列化 hotelByColor</td><td>🗑 删除相关代码</td></tr>
+    <tr><td><code>GameEngineBuildingRuleTest.java</code></td><td>Hotel 测试</td><td>🗑 删除此测试类</td></tr>
+    <tr><td><code>CardImageRegistry.java</code></td><td>Hotel 图片映射</td><td>🗑 删除映射条目</td></tr>
+    <tr><td><code>hotel new.jpg</code></td><td>资源文件</td><td>🗑 删除图片文件</td></tr>
+  </table>
+
+  <h4>第2步：删除顺序（从外到内）</h4>
+  <ol class="steps">
+    <li><strong>UI层</strong>：CardImageRegistry 映射、GameBoardView 渲染</li>
+    <li><strong>协议层</strong>：NetPlayerState 字段、ProtocolMapper</li>
+    <li><strong>服务层</strong>：BotTurnService 中 Bot 使用 Hotel 的逻辑</li>
+    <li><strong>引擎层</strong>：GameEngine 中的 addHotel、case "Hotel"、报错信息</li>
+    <li><strong>模型层</strong>：PlayerState 中的 hotelByColor 字段和方法</li>
+    <li><strong>数据层</strong>：DeckService 中的 Hotel 卡牌定义</li>
+    <li><strong>资源层</strong>：图片文件</li>
+    <li><strong>测试层</strong>：删除相关测试</li>
+  </ol>
+
+  <h4>第3步：全局搜索确认无遗漏</h4>
+  <pre><code>git grep -i "hotel" src/main/java/   <span class="comment"># 确保只有注释性提及</span>
+git grep -i "hotel" src/test/java/   <span class="comment"># 确保测试不引用</span></code></pre>
+
+  <div class="warn">
+    ⚠ <strong>关键原则</strong>：
+    <ol>
+      <li>先从 <strong>UI层</strong> 和 <strong>协议层</strong> 删起（编译会立即报错提示依赖）</li>
+      <li>Model 层字段删除后，依赖它的代码全都会编译报错，顺着错误逐层删除</li>
+      <li>删除前后各跑一次 <code>./gradlew test</code> 确认所有测试通过</li>
+      <li>如果是联网卡牌游戏，注意 DeckService 中总牌数校验（<code>cards.size() != 109</code>）</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== SUMMARY ==================== -->
+<h2 id="summary">14. 技术要点总结</h2>
+
+<div class="card">
+  <table>
+    <tr><th>维度</th><th>技术选型</th></tr>
+    <tr><td>语言</td><td>Java 17+（使用 record、switch 表达式、sealed 等现代语法）</td></tr>
+    <tr><td>UI框架</td><td>JavaFX 21 + FXML + CSS 主题</td></tr>
+    <tr><td>构建工具</td><td>Gradle (Kotlin DSL)</td></tr>
+    <tr><td>序列化</td><td>Jackson (ObjectMapper) — 前后端统一 JSON</td></tr>
+    <tr><td>通信协议</td><td>TCP Socket + 换行分隔 JSON（newline-delimited JSON）</td></tr>
+    <tr><td>测试框架</td><td>JUnit 5 (Jupiter) + Assertions</td></tr>
+    <tr><td>设计模式</td><td>MVC、MVVM、状态机、命令模式、策略模式(FixedDeckService)</td></tr>
+    <tr><td>并发</td><td>CachedThreadPool（服务端）、JavaFX Timeline（轮询）、synchronized（客户端send）</td></tr>
+    <tr><td>架构</td><td>分层架构 + 同进程C/S（本地单机）或 TCP C/S（联网多人）</td></tr>
+  </table>
+</div>
+
+<div class="footer">
+  <p>Monopoly Deal 大富翁纸牌游戏 — 第10组 — 软件工程课程设计答辩文档</p>
+  <p>项目地址：<a href="https://github.com/UCD2437group10/MonopolyDealCard" style="color:var(--accent);">github.com/UCD2437group10/MonopolyDealCard</a></p>
+</div>
+
+</div>
+</body>
+</html>

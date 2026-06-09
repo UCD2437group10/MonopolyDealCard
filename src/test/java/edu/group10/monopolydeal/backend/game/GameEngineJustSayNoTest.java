@@ -55,6 +55,68 @@ class GameEngineJustSayNoTest {
         assertTrue(p2.bank().isEmpty());
     }
 
+    @Test
+    void justSayNoCancelsSlyDealPropertyTransfer() {
+        GameEngine engine = createStartedEngine();
+        PlayerState p1 = engine.playerState("p1");
+        PlayerState p2 = engine.playerState("p2");
+
+        replaceHand(p1, card("Sly Deal", CardType.ACTION, "-", 3));
+        replaceHand(p2, card("Just Say No", CardType.ACTION, "-", 4));
+        p2.addPropertyToExactGroup("Brown", card("Mediterranean Avenue", CardType.PROPERTY, "Brown", 0));
+
+        engine.playActionCard("p1", 0, Map.of(
+                "targetPlayerId", "p2",
+                "color", "Brown",
+                "propertyIndex", "0"
+        ));
+        assertEquals("p2", engine.snapshot().jsnResponderPlayerId());
+
+        engine.respondJustSayNo("p2", true);
+
+        assertEquals("", engine.snapshot().jsnResponderPlayerId());
+        assertEquals(0, p1.propertyCount("Brown"));
+        assertEquals(1, p2.propertyCount("Brown"));
+        assertEquals(0, p2.hand().size());
+    }
+
+    @Test
+    void slyDealAppliesOnceAfterJustSayNoCounterChain() {
+        GameEngine engine = createStartedEngine();
+        PlayerState p1 = engine.playerState("p1");
+        PlayerState p2 = engine.playerState("p2");
+
+        replaceHand(
+                p1,
+                card("Sly Deal", CardType.ACTION, "-", 3),
+                card("Just Say No", CardType.ACTION, "-", 4)
+        );
+        replaceHand(p2, card("Just Say No", CardType.ACTION, "-", 4));
+        p2.addPropertyToExactGroup("Brown", card("Mediterranean Avenue", CardType.PROPERTY, "Brown", 0));
+
+        engine.playActionCard("p1", 0, Map.of(
+                "targetPlayerId", "p2",
+                "color", "Brown",
+                "propertyIndex", "0"
+        ));
+        assertEquals("p2", engine.snapshot().jsnResponderPlayerId());
+
+        engine.respondJustSayNo("p2", true);
+        assertEquals("p1", engine.snapshot().jsnResponderPlayerId());
+
+        engine.respondJustSayNo("p1", true);
+
+        assertEquals("", engine.snapshot().jsnResponderPlayerId());
+        assertEquals(1, p1.propertyCount("Brown"));
+        assertEquals(0, p2.propertyCount("Brown"));
+        assertEquals(0, p1.hand().size());
+        assertEquals(0, p2.hand().size());
+    }
+
+    private int propertyCount(PlayerState playerState, String color) {
+        return playerState.properties().getOrDefault(color, List.of()).size();
+    }
+
     private GameEngine createStartedEngine() {
         GameEngine engine = new GameEngine(new FixedDeckService());
         engine.addPlayer(new Player("p1", "Player1", false));

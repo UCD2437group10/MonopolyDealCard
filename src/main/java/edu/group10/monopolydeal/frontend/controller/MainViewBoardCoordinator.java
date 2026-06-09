@@ -83,6 +83,10 @@ final class MainViewBoardCoordinator {
         updateActionDisabled(!isMyTurn);
     }
 
+    void setActionDisabled(boolean disabled) {
+        updateActionDisabled(disabled);
+    }
+
     void updateActionFormBySelectedCard(Card selectedCard) {
         String name = selectedCard == null ? "" : selectedCard.name();
         boolean isRent = selectedCard != null && selectedCard.type() == CardType.RENT;

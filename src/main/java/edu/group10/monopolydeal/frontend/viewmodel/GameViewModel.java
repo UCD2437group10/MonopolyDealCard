@@ -3,6 +3,7 @@ package edu.group10.monopolydeal.frontend.viewmodel;
 import edu.group10.monopolydeal.backend.game.GameState;
 import edu.group10.monopolydeal.backend.model.card.Card;
 import edu.group10.monopolydeal.backend.model.player.PlayerState;
+import edu.group10.monopolydeal.backend.service.PropertySetRules;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -96,11 +97,7 @@ public class GameViewModel {
     }
 
     public int requiredSetSize(String color) {
-        return switch (baseColor(color)) {
-            case "Brown", "Deep Blue", "Utility" -> 2;
-            case "Railroad" -> 4;
-            default -> 3;
-        };
+        return PropertySetRules.requiredSetSize(color);
     }
 
     public String propertyGroupDetail(String color, List<Card> cards, int house, int hotel) {
@@ -136,12 +133,5 @@ public class GameViewModel {
                 + "\nBank total: $" + p.bankTotal()
                 + "\n\nBank:\n" + bank
                 + "\n\nProperties:\n" + properties;
-    }
-
-    private String baseColor(String color) {
-        if (color == null) {
-            return "";
-        }
-        return color.replaceFirst(" \\(\\d+\\)$", "");
     }
 }

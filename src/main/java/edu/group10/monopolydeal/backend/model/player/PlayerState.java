@@ -1,6 +1,7 @@
 package edu.group10.monopolydeal.backend.model.player;
 
 import edu.group10.monopolydeal.backend.model.card.Card;
+import edu.group10.monopolydeal.backend.service.PropertySetRules;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -171,17 +172,17 @@ public class PlayerState {
         if (color == null || color.isBlank()) {
             return color;
         }
-        String baseColor = baseColor(color);
+        String baseColor = PropertySetRules.baseColor(color);
         String bestGroup = null;
         int bestCount = Integer.MAX_VALUE;
         int maxIndex = 1;
         for (String key : properties.keySet()) {
-            if (!baseColor(key).equals(baseColor)) {
+            if (!PropertySetRules.baseColor(key).equals(baseColor)) {
                 continue;
             }
             maxIndex = Math.max(maxIndex, groupIndex(key));
             int size = propertyCount(key);
-            if (size < requiredSetSize(baseColor) && size < bestCount) {
+            if (size < PropertySetRules.requiredSetSize(baseColor) && size < bestCount) {
                 bestCount = size;
                 bestGroup = key;
             }
@@ -190,21 +191,6 @@ public class PlayerState {
             return bestGroup;
         }
         return properties.containsKey(baseColor) ? baseColor + " (" + (maxIndex + 1) + ")" : baseColor;
-    }
-
-    private int requiredSetSize(String color) {
-        return switch (baseColor(color)) {
-            case "Brown", "Deep Blue", "Utility" -> 2;
-            case "Railroad" -> 4;
-            default -> 3;
-        };
-    }
-
-    private String baseColor(String color) {
-        if (color == null) {
-            return "";
-        }
-        return color.replaceFirst(" \\(\\d+\\)$", "");
     }
 
     private int groupIndex(String color) {

@@ -1,53 +1,91 @@
 package edu.group10.monopolydeal.backend.game;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 
+import edu.group10.monopolydeal.TestHelpers;
 import edu.group10.monopolydeal.backend.model.card.CardType;
-import edu.group10.monopolydeal.backend.model.card.SimpleCard;
-import edu.group10.monopolydeal.backend.model.player.Player;
 import edu.group10.monopolydeal.backend.model.player.PlayerState;
-import edu.group10.monopolydeal.backend.service.DeckService;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Tests for winner detection rules.
+ */
 class GameEngineWinnerRuleTest {
 
     @Test
     void sameBaseColorMultipleCompleteSetsDoNotCountAsThreeWins() {
-        GameEngine engine = new GameEngine(new FixedDeckService());
-        engine.addPlayer(new Player("p1", "Player1", false));
-        engine.addPlayer(new Player("p2", "Player2", false));
-        engine.setReady("p1", true);
-        engine.setReady("p2", true);
-        engine.startGame("p1");
-
+        GameEngine engine = TestHelpers.createStartedEngine();
         PlayerState p1 = engine.playerState("p1");
+
         while (!p1.hand().isEmpty()) {
             p1.removeHandCard(p1.hand().size() - 1);
         }
-        p1.addToHand(new SimpleCard("1M Money", CardType.MONEY, "Yellow", 1));
 
-        p1.addPropertyToExactGroup("Brown", new SimpleCard("Mediterranean Avenue", CardType.PROPERTY, "Brown", 0));
-        p1.addPropertyToExactGroup("Brown", new SimpleCard("Baltic Avenue", CardType.PROPERTY, "Brown", 0));
-        p1.addPropertyToExactGroup("Brown (2)", new SimpleCard("Wild Property", CardType.MULTI_PROPERTY, "Wild", 0));
-        p1.addPropertyToExactGroup("Brown (2)", new SimpleCard("Wild Property", CardType.MULTI_PROPERTY, "Wild", 0));
-        p1.addPropertyToExactGroup("Brown (3)", new SimpleCard("Light Blue/Brown Multi", CardType.MULTI_PROPERTY, "Light Blue/Brown", 0));
-        p1.addPropertyToExactGroup("Brown (3)", new SimpleCard("Light Blue/Brown Multi", CardType.MULTI_PROPERTY, "Light Blue/Brown", 0));
+        // 3 Brown complete sets (same base color)
+        p1.addPropertyToExactGroup("Brown", TestHelpers.card("Mediterranean Avenue", CardType.PROPERTY, "Brown", 0));
+        p1.addPropertyToExactGroup("Brown", TestHelpers.card("Baltic Avenue", CardType.PROPERTY, "Brown", 0));
+        p1.addPropertyToExactGroup("Brown (2)", TestHelpers.card("Wild Property", CardType.MULTI_PROPERTY, "Wild", 0));
+        p1.addPropertyToExactGroup("Brown (2)", TestHelpers.card("Wild Property", CardType.MULTI_PROPERTY, "Wild", 0));
+        p1.addPropertyToExactGroup("Brown (3)", TestHelpers.card("Light Blue/Brown Multi", CardType.MULTI_PROPERTY, "Light Blue/Brown", 0));
+        p1.addPropertyToExactGroup("Brown (3)", TestHelpers.card("Light Blue/Brown Multi", CardType.MULTI_PROPERTY, "Light Blue/Brown", 0));
 
-        engine.playMoneyCard("p1", 0);
+        // Play a property card to trigger refreshWinner
+        p1.addToHand(TestHelpers.card("Mediterranean Avenue", CardType.PROPERTY, "Brown", 0));
+        engine.playPropertyCard("p1", 0, "");
 
         assertFalse(engine.snapshot().gameOver());
     }
 
-    private static final class FixedDeckService extends DeckService {
-        @Override
-        public List<edu.group10.monopolydeal.backend.model.card.Card> createDeck() {
-            List<edu.group10.monopolydeal.backend.model.card.Card> deck = new ArrayList<>();
-            for (int i = 0; i < 20; i++) {
-                deck.add(new SimpleCard("1M Money", CardType.MONEY, "Yellow", 1));
-            }
-            return deck;
+    @Test
+    void threeDistinctColorsWin() {
+        GameEngine engine = TestHelpers.createStartedEngine();
+        PlayerState p1 = engine.playerState("p1");
+
+        while (!p1.hand().isEmpty()) {
+            p1.removeHandCard(p1.hand().size() - 1);
         }
+
+        // 2 complete sets via direct adds
+        p1.addPropertyToExactGroup("Brown", TestHelpers.card("Mediterranean Avenue", CardType.PROPERTY, "Brown", 0));
+        p1.addPropertyToExactGroup("Brown", TestHelpers.card("Baltic Avenue", CardType.PROPERTY, "Brown", 0));
+        p1.addPropertyToExactGroup("Light Blue", TestHelpers.card("Oriental Avenue", CardType.PROPERTY, "Light Blue", 0));
+        p1.addPropertyToExactGroup("Light Blue", TestHelpers.card("Vermont Avenue", CardType.PROPERTY, "Light Blue", 0));
+        p1.addPropertyToExactGroup("Light Blue", TestHelpers.card("Connecticut Avenue", CardType.PROPERTY, "Light Blue", 0));
+
+        // Play 3rd set via playPropertyCard (triggers refreshWinner)
+        TestHelpers.replaceHand(p1,
+                TestHelpers.card("St. Charles Place", CardType.PROPERTY, "Pink", 0),
+                TestHelpers.card("States Avenue", CardType.PROPERTY, "Pink", 0),
+                TestHelpers.card("Virginia Avenue", CardType.PROPERTY, "Pink", 0));
+        engine.playPropertyCard("p1", 0, "");
+        engine.playPropertyCard("p1", 0, "");
+        engine.playPropertyCard("p1", 0, "");
+
+        assertTrue(engine.snapshot().gameOver());
+        assertEquals("p1", engine.snapshot().winnerPlayerId());
+    }
+
+    @Test
+    void incompleteSetsDoNotTriggerWin() {
+        GameEngine engine = TestHelpers.createStartedEngine();
+        PlayerState p1 = engine.playerState("p1");
+
+        while (!p1.hand().isEmpty()) {
+            p1.removeHandCard(p1.hand().size() - 1);
+        }
+
+        p1.addPropertyToExactGroup("Brown", TestHelpers.card("Mediterranean Avenue", CardType.PROPERTY, "Brown", 0));
+        p1.addPropertyToExactGroup("Brown", TestHelpers.card("Baltic Avenue", CardType.PROPERTY, "Brown", 0));
+        p1.addPropertyToExactGroup("Light Blue", TestHelpers.card("Oriental Avenue", CardType.PROPERTY, "Light Blue", 0));
+        p1.addPropertyToExactGroup("Light Blue", TestHelpers.card("Vermont Avenue", CardType.PROPERTY, "Light Blue", 0));
+        p1.addPropertyToExactGroup("Light Blue", TestHelpers.card("Connecticut Avenue", CardType.PROPERTY, "Light Blue", 0));
+        // Only 2 complete sets, Pink is incomplete
+        p1.addPropertyToExactGroup("Pink", TestHelpers.card("St. Charles Place", CardType.PROPERTY, "Pink", 0));
+
+        // Play a property card to trigger winner check
+        p1.addToHand(TestHelpers.card("Baltic Avenue", CardType.PROPERTY, "Brown", 0));
+        engine.playPropertyCard("p1", 0, "");
+
+        assertFalse(engine.snapshot().gameOver());
     }
 }

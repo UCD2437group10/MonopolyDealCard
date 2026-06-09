@@ -49,11 +49,8 @@ class GameEngineStatePollingTest {
     private void expirePendingJsn(GameEngine engine) throws Exception {
         Field pendingJsnField = GameEngine.class.getDeclaredField("pendingJsn");
         pendingJsnField.setAccessible(true);
-        Object pending = pendingJsnField.get(engine);
-
-        Field waitingSinceMsField = pending.getClass().getDeclaredField("waitingSinceMs");
-        waitingSinceMsField.setAccessible(true);
-        waitingSinceMsField.setLong(pending, System.currentTimeMillis() - 20_000L);
+        PendingJsnState pending = (PendingJsnState) pendingJsnField.get(engine);
+        pending.setWaitingSinceMs(System.currentTimeMillis() - 20_000L);
     }
 
     private GameEngine createStartedEngine() {
