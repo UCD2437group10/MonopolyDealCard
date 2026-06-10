@@ -21,7 +21,7 @@
             style="-fx-background-color: linear-gradient(to bottom, #0f0f0f, #191611); -fx-text-fill: #d4af37;">
     <center>
         <VBox spacing="0.0" alignment="CENTER" style="-fx-background-color: transparent;">
-            <VBox fx:id="menuPane" spacing="14.0" alignment="CENTER" maxWidth="760.0">
+            <VBox fx:id="menuPane" spacing="14.0" alignment="CENTER" maxWidth="684.0">
                 <padding>
                     <Insets top="20.0" right="20.0" bottom="20.0" left="20.0"/>
                 </padding>
@@ -37,15 +37,15 @@
                     <Label text="Multiplayer Settings" style="-fx-font-weight: bold; -fx-text-fill: #d4af37;"/>
                     <HBox spacing="8.0" alignment="CENTER">
                         <Label text="Server IP" style="-fx-text-fill: #cdbb86;"/>
-                        <TextField fx:id="menuHostField" prefWidth="140.0" text="127.0.0.1"/>
+                        <TextField fx:id="menuHostField" prefWidth="126.0" text="127.0.0.1"/>
                         <Label text="Port" style="-fx-text-fill: #cdbb86;"/>
-                        <TextField fx:id="menuPortField" prefWidth="90.0" text="18080"/>
+                        <TextField fx:id="menuPortField" prefWidth="81.0" text="18080"/>
                     </HBox>
                     <HBox spacing="8.0" alignment="CENTER">
                         <Label text="PlayerId" style="-fx-text-fill: #cdbb86;"/>
-                        <TextField fx:id="menuPlayerIdField" prefWidth="120.0" text="p1"/>
+                        <TextField fx:id="menuPlayerIdField" prefWidth="108.0" text="p1"/>
                         <Label text="Name" style="-fx-text-fill: #cdbb86;"/>
-                        <TextField fx:id="menuPlayerNameField" prefWidth="140.0" text="Player1"/>
+                        <TextField fx:id="menuPlayerNameField" prefWidth="126.0" text="Player1"/>
                         <CheckBox fx:id="menuBotCheckBox" text="BOT" style="-fx-text-fill: #cdbb86;"/>
                     </HBox>
                     <HBox spacing="8.0" alignment="CENTER">
@@ -57,7 +57,7 @@
                     <Label text="Sound Settings" style="-fx-font-weight: bold; -fx-text-fill: #d4af37;"/>
                     <HBox spacing="10.0" alignment="CENTER">
                         <Label text="Effect Volume" style="-fx-text-fill: #cdbb86;"/>
-                        <Slider fx:id="menuVolumeSlider" min="0.0" max="100.0" value="60.0" prefWidth="220.0" blockIncrement="5.0"/>
+                        <Slider fx:id="menuVolumeSlider" min="0.0" max="100.0" value="60.0" prefWidth="198.0" blockIncrement="5.0"/>
                         <Label fx:id="menuVolumeLabel" text="60%" style="-fx-text-fill: #f0d57a; -fx-font-weight: bold;"/>
                     </HBox>
                 </VBox>
@@ -86,23 +86,23 @@
                     <Label fx:id="turnLabel" text="Turn: unknown" style="-fx-text-fill: #f0d57a;"/>
                 </HBox>
 
-                <VBox spacing="8.0" prefHeight="360.0" maxHeight="380.0" VBox.vgrow="NEVER">
+                <VBox spacing="8.0" prefHeight="324.0" maxHeight="342.0" VBox.vgrow="NEVER">
                     <VBox spacing="6.0" style="-fx-background-color: rgba(212,175,55,0.08); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
                         <Label text="Other Players (targetable)" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
-                        <FlowPane fx:id="opponentsPane" hgap="8.0" vgap="8.0" prefWrapLength="1120.0"/>
+                        <FlowPane fx:id="opponentsPane" hgap="8.0" vgap="8.0" prefWrapLength="1008.0"/>
                     </VBox>
 
-                    <HBox spacing="10.0" prefHeight="250.0" maxHeight="260.0" alignment="CENTER_LEFT" VBox.vgrow="ALWAYS">
-                        <VBox spacing="6.0" prefWidth="300.0" minWidth="300.0" style="-fx-background-color: rgba(212,175,55,0.06); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
+                    <HBox spacing="10.0" prefHeight="225.0" maxHeight="234.0" alignment="CENTER_LEFT" VBox.vgrow="ALWAYS">
+                        <VBox spacing="6.0" prefWidth="270.0" minWidth="270.0" style="-fx-background-color: rgba(212,175,55,0.06); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
                             <Label text="My Bank" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
-                            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" prefHeight="90.0" minHeight="90.0" maxHeight="90.0"
+                            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" prefHeight="81.0" minHeight="81.0" maxHeight="81.0"
                                         style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="NEVER">
                                 <content>
-                                    <FlowPane fx:id="myBankPane" hgap="8.0" vgap="8.0" prefWrapLength="260.0"/>
+                                    <FlowPane fx:id="myBankPane" hgap="8.0" vgap="8.0" prefWrapLength="234.0"/>
                                 </content>
                             </ScrollPane>
                             <Label text="My Properties" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
-                            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" prefHeight="118.0" minHeight="118.0" maxHeight="118.0"
+                            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" prefHeight="106.0" minHeight="106.0" maxHeight="106.0"
                                         style="-fx-background: transparent; -fx-background-color: transparent;" VBox.vgrow="NEVER">
                                 <content>
                                     <VBox fx:id="myPropertyBox" spacing="6.0"/>
@@ -110,18 +110,18 @@
                             </ScrollPane>
                         </VBox>
 
-                        <StackPane fx:id="centerBoardPane" prefHeight="250.0" maxHeight="260.0" style="-fx-background-color: rgba(212,175,55,0.04); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;" HBox.hgrow="ALWAYS">
+                        <StackPane fx:id="centerBoardPane" prefHeight="225.0" maxHeight="234.0" style="-fx-background-color: rgba(212,175,55,0.04); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;" HBox.hgrow="ALWAYS">
                             <VBox spacing="8.0" alignment="CENTER">
                                 <Label text="Pile Area" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
                                 <HBox spacing="16.0" alignment="CENTER">
-                                    <Button fx:id="drawPileButton" text="Draw Pile\n0" onAction="#onShowDrawPile" prefWidth="124.0" prefHeight="172.0"/>
-                                    <Button fx:id="discardPileButton" text="Discard Pile\n0" onAction="#onShowDiscardPile" prefWidth="124.0" prefHeight="172.0"/>
+                                    <Button fx:id="drawPileButton" text="Draw Pile\n0" onAction="#onShowDrawPile" prefWidth="112.0" prefHeight="155.0"/>
+                                    <Button fx:id="discardPileButton" text="Discard Pile\n0" onAction="#onShowDiscardPile" prefWidth="112.0" prefHeight="155.0"/>
                                 </HBox>
                                 <Label text="Click a pile to view details" style="-fx-text-fill: #d9c27f;"/>
                             </VBox>
                         </StackPane>
 
-                        <VBox spacing="6.0" prefWidth="290.0" minWidth="290.0" style="-fx-background-color: rgba(212,175,55,0.06); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
+                        <VBox spacing="6.0" prefWidth="261.0" minWidth="261.0" style="-fx-background-color: rgba(212,175,55,0.06); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
                             <Label text="Action Log" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
                             <TextArea fx:id="actionLogArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS"/>
                             <Label text="Lobby / State" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
@@ -130,7 +130,7 @@
                     </HBox>
                 </VBox>
 
-                <VBox spacing="6.0" prefHeight="610.0" VBox.vgrow="ALWAYS" style="-fx-background-color: rgba(212,175,55,0.08); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
+                <VBox spacing="6.0" prefHeight="549.0" VBox.vgrow="ALWAYS" style="-fx-background-color: rgba(212,175,55,0.08); -fx-border-color: #6e5a1f; -fx-border-width: 1; -fx-padding: 8;">
                     <HBox spacing="10.0" alignment="CENTER_LEFT">
                         <Label text="Hand (select a card, then play)" style="-fx-text-fill: #d4af37; -fx-font-weight: bold;"/>
                         <Label fx:id="selectedCardLabel" text="Selected card: none" style="-fx-text-fill: #f0d57a;"/>
@@ -144,10 +144,10 @@
                             <Button fx:id="endTurnButton" text="End Turn" onAction="#onEndTurn"/>
                         </HBox>
                     </HBox>
-                    <ScrollPane fx:id="myHandScrollPane" fitToWidth="false" fitToHeight="true" hbarPolicy="AS_NEEDED" vbarPolicy="NEVER" prefHeight="580.0" VBox.vgrow="ALWAYS"
+                    <ScrollPane fx:id="myHandScrollPane" fitToWidth="false" fitToHeight="true" hbarPolicy="AS_NEEDED" vbarPolicy="NEVER" prefHeight="522.0" VBox.vgrow="ALWAYS"
                                 style="-fx-background: transparent; -fx-background-color: transparent;">
                         <content>
-                            <HBox fx:id="myHandPane" spacing="12.0" alignment="CENTER_LEFT" prefHeight="560.0"/>
+                            <HBox fx:id="myHandPane" spacing="12.0" alignment="CENTER_LEFT" prefHeight="504.0"/>
                         </content>
                     </ScrollPane>
                 </VBox>

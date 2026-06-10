@@ -23,7 +23,7 @@ public class GameBoardView {
             return;
         }
         for (Card card : me.bank()) {
-            Button button = cardButton(card.name() + "\n$" + card.bankValue(), "money", false, 110, 50);
+            Button button = cardButton(card.name() + "\n$" + card.bankValue(), "money", false, 99, 45);
             button.setDisable(true);
             myBankPane.getChildren().add(button);
         }
@@ -48,7 +48,7 @@ public class GameBoardView {
             int need = requiredSetSize.applyAsInt(color);
             int progress = Math.min(cards.size(), need);
             Button stackButton = cardButton(color + "  " + progress + "/" + need + "  H:" + house + " T:" + hotel,
-                    color, false, 320, 34);
+                    color, false, 288, 31);
             stackButton.setOnAction(event -> clickHandler.onClick(color, cards, house, hotel));
             myPropertyBox.getChildren().add(stackButton);
         }
@@ -68,7 +68,7 @@ public class GameBoardView {
             VBox card = new VBox(4);
             card.setUserData(p.player().id());
             card.setStyle("-fx-background-color: rgba(212,175,55,0.08); -fx-border-color: #7a6320; -fx-border-width: 1; -fx-padding: 6;");
-            card.setPrefWidth(250);
+            card.setPrefWidth(225);
             Label name = new Label(p.player().displayName() + " (" + p.player().id() + ")");
             name.setStyle("-fx-text-fill: #d4af37; -fx-font-weight: bold;");
             Label hand = new Label("Hand: " + p.hand().size() + " | Bank: $" + p.bankTotal() + " | Property groups: " + p.properties().size());

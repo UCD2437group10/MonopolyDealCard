@@ -111,21 +111,21 @@ final class MainViewEffects {
         }
 
         FlowPane cardPane = new FlowPane();
-        cardPane.setHgap(12);
-        cardPane.setVgap(12);
-        cardPane.setPrefWrapLength(720);
+        cardPane.setHgap(11);
+        cardPane.setVgap(11);
+        cardPane.setPrefWrapLength(648);
         for (Card card : cards) {
             VBox cardBox = new VBox(6);
             ImageView imageView = CardImageRegistry.buildCardImageView(card);
             if (imageView != null) {
-                imageView.setFitWidth(132);
-                imageView.setFitHeight(188);
+                imageView.setFitWidth(119);
+                imageView.setFitHeight(169);
                 cardBox.getChildren().add(imageView);
             }
             Label label = new Label(card.name());
             label.setStyle("-fx-text-fill: #e7d39a; -fx-font-size: 11px;");
             label.setWrapText(true);
-            label.setPrefWidth(132);
+            label.setPrefWidth(119);
             cardBox.getChildren().add(label);
             cardPane.getChildren().add(cardBox);
         }
@@ -134,8 +134,8 @@ final class MainViewEffects {
         scrollPane.setFitToWidth(true);
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollPane.setPrefViewportWidth(760);
-        scrollPane.setPrefViewportHeight(420);
+        scrollPane.setPrefViewportWidth(684);
+        scrollPane.setPrefViewportHeight(378);
         scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         dialog.getDialogPane().setContent(scrollPane);
         dialog.showAndWait();
@@ -272,8 +272,8 @@ final class MainViewEffects {
         flying.setManaged(false);
         flying.setMouseTransparent(true);
         flying.setPreserveRatio(false);
-        flying.setFitWidth(92);
-        flying.setFitHeight(132);
+        flying.setFitWidth(83);
+        flying.setFitHeight(119);
 
         double startX = sourceScene.getMinX() - boardScene.getMinX() + 16 + (cardOffsetIndex * 4.0);
         double startY = sourceScene.getMinY() - boardScene.getMinY() + 16 - (cardOffsetIndex * 3.0);
@@ -333,14 +333,14 @@ final class MainViewEffects {
 
     private StackPane buildDrawPileGraphic() {
         StackPane pile = new StackPane();
-        pile.setPrefSize(132, 178);
+        pile.setPrefSize(119, 160);
         for (int i = 2; i >= 0; i--) {
             ImageView layer = buildPileImageView(null);
             if (layer == null) {
                 continue;
             }
-            layer.setTranslateX(i * 4.0);
-            layer.setTranslateY(-i * 3.0);
+            layer.setTranslateX(i * 3.6);
+            layer.setTranslateY(-i * 2.7);
             layer.setOpacity(i == 0 ? 1.0 : 0.82);
             pile.getChildren().add(layer);
         }
@@ -349,11 +349,11 @@ final class MainViewEffects {
 
     private StackPane buildDiscardPileGraphic(Card topCard) {
         StackPane pile = new StackPane();
-        pile.setPrefSize(132, 178);
+        pile.setPrefSize(119, 160);
         ImageView base = buildPileImageView(null);
         if (base != null) {
-            base.setTranslateX(4);
-            base.setTranslateY(-3);
+            base.setTranslateX(3.6);
+            base.setTranslateY(-2.7);
             base.setOpacity(0.78);
             pile.getChildren().add(base);
         }
@@ -372,8 +372,8 @@ final class MainViewEffects {
             return null;
         }
         ImageView imageView = new ImageView(image);
-        imageView.setFitWidth(124);
-        imageView.setFitHeight(162);
+        imageView.setFitWidth(112);
+        imageView.setFitHeight(146);
         imageView.setPreserveRatio(false);
         imageView.setSmooth(true);
         return imageView;

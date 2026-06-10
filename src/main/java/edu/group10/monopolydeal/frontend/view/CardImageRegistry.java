@@ -118,8 +118,8 @@ public final class CardImageRegistry {
             return null;
         }
         ImageView imageView = new ImageView(image);
-        imageView.setFitWidth(160);
-        imageView.setFitHeight(228);
+        imageView.setFitWidth(144);
+        imageView.setFitHeight(205);
         imageView.setPreserveRatio(true);
         imageView.setSmooth(true);
         return imageView;

@@ -105,9 +105,9 @@ final class MainViewHandController {
 
     private Button buildHandCardButton(Card card, int idx, GameViewModel gameViewModel, Runnable onSelectionChanged) {
         Button button = new Button();
-        button.setPrefSize(170, 240);
-        button.setMinSize(170, 240);
-        button.setMaxSize(170, 240);
+        button.setPrefSize(153, 216);
+        button.setMinSize(153, 216);
+        button.setMaxSize(153, 216);
         ImageView imageView = CardImageRegistry.buildCardImageView(card);
         if (imageView != null) {
             button.setGraphic(imageView);

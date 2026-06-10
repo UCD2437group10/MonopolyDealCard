@@ -24,12 +24,12 @@ public class GameClientApp extends Application {
         stage.setTitle("Monopoly Deal");
         Parent root = loadRoot();
         root.getStyleClass().add("main-root");
-        Scene scene = new Scene(root, 1280, 920);
+        Scene scene = new Scene(root, 1152, 828);
         String css = getClass().getResource("/css/main-theme.css").toExternalForm();
         scene.getStylesheets().add(css);
         stage.setScene(scene);
-        stage.setMinWidth(1180);
-        stage.setMinHeight(860);
+        stage.setMinWidth(1062);
+        stage.setMinHeight(774);
         stage.show();
     }
 
