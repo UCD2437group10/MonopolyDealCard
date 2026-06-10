@@ -125,31 +125,4 @@ public class GameCommandService {
     private edu.group10.monopolydeal.backend.game.GameState currentSnapshot() {
         return gameEngine.snapshot();
     }
-
-    /** Lists the commands supported by the current backend. */
-    public List<String> supportedActions() {
-        return List.of("JOIN", "READY", "UNREADY", "START", "PLAY_MONEY", "PLAY_PROPERTY", "PLAY_RENT", "CHANGE_PROPERTY_COLOR", "PLAY_ACTION", "RESPOND_JSN", "SUBMIT_PAYMENT", "END_TURN", "BOT_TURN", "STATE", "RESET");
-    }
-
-    /** Returns a compact description of the payload required by one action. */
-    public Map<String, String> actionDoc(String action) {
-        return switch (action) {
-            case "JOIN" -> Map.of("payload", "name, bot", "description", "Join a room");
-            case "READY" -> Map.of("payload", "none", "description", "Mark the player as ready");
-            case "UNREADY" -> Map.of("payload", "none", "description", "Cancel ready status");
-            case "START" -> Map.of("payload", "none", "description", "Start the game and deal cards");
-            case "PLAY_MONEY" -> Map.of("payload", "handIndex", "description", "Place a hand card into the bank");
-            case "PLAY_PROPERTY" -> Map.of("payload", "handIndex, colorChoice", "description", "Play a property or multi-property card");
-            case "PLAY_RENT" -> Map.of("payload", "handIndex, targetPlayerId, colorChoice, doubleRentCount", "description", "Charge rent");
-            case "CHANGE_PROPERTY_COLOR" -> Map.of("payload", "fromColor, propertyIndex, colorChoice", "description", "Change the color of an already played multi-property card");
-            case "PLAY_ACTION" -> Map.of("payload", "handIndex plus action parameters", "description", "Play an action card");
-            case "RESPOND_JSN" -> Map.of("payload", "useCard(true/false)", "description", "Respond to a Just Say No prompt");
-            case "SUBMIT_PAYMENT" -> Map.of("payload", "bankIndexes, propertyRefs", "description", "Submit selected assets for a pending payment");
-            case "END_TURN" -> Map.of("payload", "none", "description", "End the turn when hand size is at most seven");
-            case "BOT_TURN" -> Map.of("payload", "none", "description", "Let the current bot finish its turn");
-            case "STATE" -> Map.of("payload", "none", "description", "Fetch the latest state snapshot");
-            case "RESET" -> Map.of("payload", "none", "description", "Clear the current match state");
-            default -> Map.of();
-        };
-    }
 }
